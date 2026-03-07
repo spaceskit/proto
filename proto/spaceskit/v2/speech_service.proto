@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service SpeechService {
+  rpc StreamSpeechSession(stream StreamSpeechSessionRequest) returns (stream StreamSpeechSessionResponse);
+}
+
+enum SpeechSessionControlCommand {
+  SPEECH_SESSION_CONTROL_COMMAND_UNSPECIFIED = 0;
+  SPEECH_SESSION_CONTROL_COMMAND_START_LISTENING = 1;
+  SPEECH_SESSION_CONTROL_COMMAND_STOP_LISTENING = 2;
+  SPEECH_SESSION_CONTROL_COMMAND_INTERRUPT_PLAYBACK = 3;
+  SPEECH_SESSION_CONTROL_COMMAND_END_SESSION = 4;
+}
+
+enum SpeechSessionEventType {
+  SPEECH_SESSION_EVENT_TYPE_UNSPECIFIED = 0;
+  SPEECH_SESSION_EVENT_TYPE_STARTED = 1;
+  SPEECH_SESSION_EVENT_TYPE_LISTENING = 2;
+  SPEECH_SESSION_EVENT_TYPE_PROCESSING = 3;
+  SPEECH_SESSION_EVENT_TYPE_SPEAKING = 4;
+  SPEECH_SESSION_EVENT_TYPE_INTERRUPTED = 5;
+  SPEECH_SESSION_EVENT_TYPE_COMPLETED = 6;
+  SPEECH_SESSION_EVENT_TYPE_ERROR = 7;
+  SPEECH_SESSION_EVENT_TYPE_CLARIFICATION_REQUESTED = 8;
+}
+
+message SpeechAudioChunk {
+  bytes audio_bytes = 1;
+  int32 sample_rate_hz = 2;
+  int32 channels = 3;
+  string codec = 4;
+  int64 sequence_no = 5;
+  bool is_final = 6;
+  string transcript_text = 7;
+  double audio_duration_seconds = 8;
+  int32 tts_chars = 9;
+  double tts_seconds = 10;
+}
+
+message SpeechTranscriptSegment {
+  string text = 1;
+  bool is_final = 2;
+  string locale = 3;
+  double confidence = 4;
+  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp end_time = 6;
+  int64 sequence_no = 7;
+}
+
+message SpeechSessionStart {
+  string session_id = 1;
+  string space_id = 2;
+  string locale = 3;
+  string source_device = 4;
+  bool enable_transcription = 5;
+  bool enable_playback = 6;
+  string agent_id = 7;
+  bool auto_submit_turns = 8;
+  VoiceProviderSource preferred_source = 9;
+  string preferred_provider_id = 10;
+  string byok_provider_id = 11;
+  string local_model_provider_id = 12;
+  string apple_speech_provider_id = 13;
+  bool allow_byok_fallback = 14;
+  bool allow_local_fallback = 15;
+  bool allow_apple_speech_fallback = 16;
+}
+
+message SpeechSessionControl {
+  SpeechSessionControlCommand command = 1;
+  string reason = 2;
+}
+
+message SpeechUsageMetrics {
+  double stt_seconds = 1;
+  int32 tts_chars = 2;
+  double tts_seconds = 3;
+}
+
+message StreamSpeechSessionRequest {
+  string api_version = 1;
+  oneof payload {
+    SpeechSessionStart start = 2;
+    SpeechAudioChunk audio = 3;
+    SpeechSessionControl control = 4;
+  }
+}
+
+message SpeechSessionEvent {
+  SpeechSessionEventType type = 1;
+  string message = 2;
+  VoiceIntentDecision intent = 3;
+  string state = 4;
+  string event_type = 5;
+  string transcript = 6;
+  string turn_id = 7;
+  int64 sequence_no = 8;
+  string reason = 9;
+  string space_id = 10;
+  google.protobuf.Timestamp emitted_at = 11;
+  VoiceProviderSource provider_source = 12;
+  string provider_id = 13;
+  VoiceFallbackReason fallback_reason = 14;
+  SpeechUsageMetrics usage = 15;
+  string lock_reason = 16;
+}
+
+message StreamSpeechSessionResponse {
+  string api_version = 1;
+  string session_id = 2;
+  oneof payload {
+    SpeechSessionEvent event = 3;
+    SpeechTranscriptSegment transcript = 4;
+    SpeechAudioChunk audio = 5;
+    Ack ack = 6;
+  }
+}

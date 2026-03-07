@@ -1,0 +1,1198 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Core enums
+// ---------------------------------------------------------------------------
+
+enum RuntimePermissionMode {
+  RUNTIME_PERMISSION_MODE_UNSPECIFIED = 0;
+  RUNTIME_PERMISSION_MODE_SANDBOX = 1;
+  RUNTIME_PERMISSION_MODE_FULL_ACCESS = 2;
+  RUNTIME_PERMISSION_MODE_DEVELOPER = 3;
+}
+
+enum BehaviorProfile {
+  BEHAVIOR_PROFILE_UNSPECIFIED = 0;
+  BEHAVIOR_PROFILE_STANDARD = 1;
+  BEHAVIOR_PROFILE_STRICT = 2;
+  BEHAVIOR_PROFILE_AUTONOMOUS = 3;
+}
+
+enum SpaceContextMode {
+  SPACE_CONTEXT_MODE_UNSPECIFIED = 0;
+  SPACE_CONTEXT_MODE_WORKSPACE_DEFAULT = 1;
+  SPACE_CONTEXT_MODE_PROJECT_PATH = 2;
+  SPACE_CONTEXT_MODE_NO_CONTEXT = 3;
+}
+
+enum SpaceStatus {
+  SPACE_STATUS_UNSPECIFIED = 0;
+  SPACE_STATUS_CREATED = 1;
+  SPACE_STATUS_ACTIVE = 2;
+  SPACE_STATUS_PAUSED = 3;
+  SPACE_STATUS_COMPLETED = 4;
+  SPACE_STATUS_FAILED = 5;
+}
+
+enum TurnModelStrategy {
+  TURN_MODEL_STRATEGY_UNSPECIFIED = 0;
+  TURN_MODEL_STRATEGY_SEQUENTIAL_ALL = 1;
+  TURN_MODEL_STRATEGY_PRIMARY_ONLY = 2;
+  TURN_MODEL_STRATEGY_FIRST_SUCCESS = 3;
+  TURN_MODEL_STRATEGY_ROUND_ROBIN = 4;
+  TURN_MODEL_STRATEGY_PARALLEL_RACE = 5;
+  TURN_MODEL_STRATEGY_DEBATE_SYNTHESIS = 6;
+  TURN_MODEL_STRATEGY_ADAPTIVE_AUTO = 7;
+}
+
+enum VoiceIntentType {
+  VOICE_INTENT_TYPE_UNSPECIFIED = 0;
+  VOICE_INTENT_TYPE_SPACE_CONTENT = 1;
+  VOICE_INTENT_TYPE_ORCHESTRATION_COMMAND = 2;
+  VOICE_INTENT_TYPE_CLARIFICATION_REQUIRED = 3;
+}
+
+enum VoiceProviderSource {
+  VOICE_PROVIDER_SOURCE_UNSPECIFIED = 0;
+  VOICE_PROVIDER_SOURCE_MANAGED = 1;
+  VOICE_PROVIDER_SOURCE_BYOK = 2;
+  VOICE_PROVIDER_SOURCE_LOCAL_MODEL = 3;
+  VOICE_PROVIDER_SOURCE_APPLE_SPEECH = 4;
+}
+
+enum VoiceFallbackReason {
+  VOICE_FALLBACK_REASON_UNSPECIFIED = 0;
+  VOICE_FALLBACK_REASON_DEFAULT = 1;
+  VOICE_FALLBACK_REASON_MANUAL_OVERRIDE = 2;
+  VOICE_FALLBACK_REASON_QUOTA_FALLBACK = 3;
+  VOICE_FALLBACK_REASON_LOCAL_FORCED = 4;
+}
+
+enum CoordinatorRole {
+  COORDINATOR_ROLE_UNSPECIFIED = 0;
+  COORDINATOR_ROLE_GLOBAL_COORDINATOR = 1;
+  COORDINATOR_ROLE_SPACE_MODERATOR = 2;
+}
+
+enum AgentCallMode {
+  AGENT_CALL_MODE_UNSPECIFIED = 0;
+  AGENT_CALL_MODE_HANDOFF = 1;
+  AGENT_CALL_MODE_ASSIGN = 2;
+  AGENT_CALL_MODE_MESSAGE = 3;
+}
+
+enum AgentCallStatus {
+  AGENT_CALL_STATUS_UNSPECIFIED = 0;
+  AGENT_CALL_STATUS_PENDING = 1;
+  AGENT_CALL_STATUS_RUNNING = 2;
+  AGENT_CALL_STATUS_COMPLETED = 3;
+  AGENT_CALL_STATUS_FAILED = 4;
+  AGENT_CALL_STATUS_CANCELED = 5;
+}
+
+enum CapabilityApprovalStatus {
+  CAPABILITY_APPROVAL_STATUS_UNSPECIFIED = 0;
+  CAPABILITY_APPROVAL_STATUS_PROPOSED = 1;
+  CAPABILITY_APPROVAL_STATUS_APPROVED = 2;
+  CAPABILITY_APPROVAL_STATUS_REJECTED = 3;
+  CAPABILITY_APPROVAL_STATUS_DEPRECATED = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Profile & personality enums
+// ---------------------------------------------------------------------------
+
+enum ProfileStatus {
+  PROFILE_STATUS_UNSPECIFIED = 0;
+  PROFILE_STATUS_ACTIVE = 1;
+  PROFILE_STATUS_ARCHIVED = 2;
+}
+
+enum InsightStatus {
+  INSIGHT_STATUS_UNSPECIFIED = 0;
+  INSIGHT_STATUS_PROPOSED = 1;    // Auto-generated from experience
+  INSIGHT_STATUS_ACCEPTED = 2;    // Human approved → new revision created
+  INSIGHT_STATUS_REJECTED = 3;    // Human discarded
+  INSIGHT_STATUS_SUPERSEDED = 4;  // Replaced by a newer insight
+}
+
+// ---------------------------------------------------------------------------
+// Feedback enums — the human-in-the-loop protocol
+// ---------------------------------------------------------------------------
+
+enum FeedbackCategory {
+  FEEDBACK_CATEGORY_UNSPECIFIED = 0;
+  FEEDBACK_CATEGORY_PERMISSION = 1;       // Agent needs elevated permission
+  FEEDBACK_CATEGORY_BUDGET = 2;           // Budget threshold reached
+  FEEDBACK_CATEGORY_HIGH_IMPACT = 3;      // Destructive or irreversible action
+  FEEDBACK_CATEGORY_AMBIGUITY = 4;        // Agent unsure how to proceed
+  FEEDBACK_CATEGORY_CONFLICT = 5;         // Agents disagree
+  FEEDBACK_CATEGORY_SECURITY = 6;         // Security policy triggered
+}
+
+enum FeedbackStatus {
+  FEEDBACK_STATUS_UNSPECIFIED = 0;
+  FEEDBACK_STATUS_PENDING = 1;
+  FEEDBACK_STATUS_RESOLVED = 2;
+  FEEDBACK_STATUS_EXPIRED = 3;
+}
+
+enum FeedbackResponseType {
+  FEEDBACK_RESPONSE_TYPE_UNSPECIFIED = 0;
+  FEEDBACK_RESPONSE_TYPE_APPROVE = 1;
+  FEEDBACK_RESPONSE_TYPE_REJECT = 2;
+  FEEDBACK_RESPONSE_TYPE_REVISE = 3;   // Approve with modifications
+  FEEDBACK_RESPONSE_TYPE_DEFER = 4;    // Postpone decision
+}
+
+// ---------------------------------------------------------------------------
+// Skill & action enums
+// ---------------------------------------------------------------------------
+
+// A skill is declarative context injected into an agent's prompt.
+// An action is an executable procedure with steps, scripts, and side effects.
+enum KnowledgeType {
+  KNOWLEDGE_TYPE_UNSPECIFIED = 0;
+  KNOWLEDGE_TYPE_SKILL = 1;   // Declarative — shapes agent behavior
+  KNOWLEDGE_TYPE_ACTION = 2;  // Imperative — executable runbook
+}
+
+enum ActionStepType {
+  ACTION_STEP_TYPE_UNSPECIFIED = 0;
+  ACTION_STEP_TYPE_PROMPT = 1;   // Agent prompt to execute
+  ACTION_STEP_TYPE_SCRIPT = 2;   // Shell/script to run
+  ACTION_STEP_TYPE_INVOKE = 3;   // Invoke a capability
+}
+
+enum ActionStatus {
+  ACTION_STATUS_UNSPECIFIED = 0;
+  ACTION_STATUS_PENDING = 1;
+  ACTION_STATUS_RUNNING = 2;
+  ACTION_STATUS_COMPLETED = 3;
+  ACTION_STATUS_FAILED = 4;
+  ACTION_STATUS_CANCELED = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Experience enums
+// ---------------------------------------------------------------------------
+
+enum ExperienceStatus {
+  EXPERIENCE_STATUS_UNSPECIFIED = 0;
+  EXPERIENCE_STATUS_DRAFT = 1;       // Auto-generated, not yet reviewed
+  EXPERIENCE_STATUS_ACCEPTED = 2;    // Human-reviewed and kept
+  EXPERIENCE_STATUS_REJECTED = 3;    // Human-reviewed and discarded
+  EXPERIENCE_STATUS_ARCHIVED = 4;    // Kept but no longer surfaced
+}
+
+// ---------------------------------------------------------------------------
+// Core messages
+// ---------------------------------------------------------------------------
+
+message Ack {
+  string api_version = 1;
+  bool ok = 2;
+  string message = 3;
+}
+
+message ErrorInfo {
+  string code = 1;
+  string message = 2;
+  bool recoverable = 3;
+}
+
+message RuntimePolicy {
+  RuntimePermissionMode permission_mode = 1;
+  BehaviorProfile behavior_profile = 2;
+  bool full_access_warning_accepted = 3;
+  bool developer_warning_accepted = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message SpaceContextBinding {
+  SpaceContextMode mode = 1;
+  string project_path = 2;
+  string effective_workspace_root = 3;
+}
+
+enum SpaceWorkspaceMode {
+  SPACE_WORKSPACE_MODE_UNSPECIFIED = 0;
+  SPACE_WORKSPACE_MODE_MANAGED = 1;
+  SPACE_WORKSPACE_MODE_FOLDER_BOUND = 2;
+}
+
+enum SpaceWorkspaceMetadataStatus {
+  SPACE_WORKSPACE_METADATA_STATUS_UNSPECIFIED = 0;
+  SPACE_WORKSPACE_METADATA_STATUS_READY = 1;
+  SPACE_WORKSPACE_METADATA_STATUS_CONFLICT = 2;
+}
+
+message SpaceWorkspaceBinding {
+  string space_id = 1;
+  string space_uid = 2;
+  SpaceWorkspaceMode mode = 3;
+  string explicit_workspace_root = 4;
+  string effective_workspace_root = 5;
+  string meta_path = 6;
+  string logs_path = 7;
+  string work_path = 8;
+  string shared_context_path = 9;
+  string scratchpads_path = 10;
+  int32 layout_version = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  bool git_repo_detected = 13;
+  SpaceWorkspaceMetadataStatus metadata_status = 14;
+}
+
+message VoicePolicy {
+  bool default_to_active_space = 1;
+  double command_confidence_threshold = 2;
+  double clarification_confidence_floor = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Space model
+// ---------------------------------------------------------------------------
+
+message SpaceState {
+  string api_version = 1;
+  // Unique within a single gateway namespace.
+  // Clients handling multiple gateways MUST treat (gateway, space_id) as the stable composite identifier.
+  string space_id = 2;
+  string resource_id = 3;
+  string name = 4;
+  string goal = 5;
+  SpaceStatus status = 6;
+  TurnModelStrategy turn_model = 7;
+  BehaviorProfile behavior_profile = 8;
+  SpaceContextBinding context_binding = 9;
+  VoicePolicy voice_policy = 10;
+  string template_id = 11;
+  // Per-agent security scopes for this space.
+  repeated AgentSecurityScope agent_scopes = 12;
+  // Security policy governing this space.
+  SecurityPolicy security_policy = 13;
+  // Agents assigned to this space with their roles and config.
+  repeated SpaceAgentAssignment agent_assignments = 14;
+  // Detailed turn model configuration.
+  TurnModelConfig turn_model_config = 15;
+  // Moderator profile for this space (if any).
+  string moderator_profile_id = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+  // Space-level skill assignments applied to all agents in this space.
+  repeated string skill_ids = 19;
+  // Space-level resource assignments.
+  repeated SpaceResource resources = 20;
+  // Immutable UUID used as globally stable space identity across gateways and clients.
+  string space_uid = 21;
+  // First-class per-space workspace binding.
+  SpaceWorkspaceBinding workspace = 22;
+}
+
+message SpaceMcpEndpointConfig {
+  string endpoint_id = 1;
+  string space_id = 2;
+  string transport = 3;
+  string endpoint = 4;
+  repeated string args = 5;
+  string secret_ref = 6;
+  bool enabled = 7;
+  string health_status = 8;
+  string health_message = 9;
+  google.protobuf.Timestamp last_connected_at = 10;
+  google.protobuf.Timestamp last_error_at = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message McpDiscoveredAgent {
+  string remote_agent_id = 1;
+  string display_name = 2;
+  string description = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message ExternalAgentRuntimeBinding {
+  string runtime_kind = 1; // "external_mcp"
+  string space_id = 2;
+  string agent_id = 3;
+  string endpoint_id = 4;
+  string remote_agent_id = 5;
+  string display_name = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message VoiceIntentDecision {
+  VoiceIntentType intent_type = 1;
+  double confidence = 2;
+  string rationale = 3;
+  string clarification_prompt = 4;
+  string capability_id = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Capability model
+// ---------------------------------------------------------------------------
+
+message CapabilityScope {
+  string space_template_id = 1;
+  repeated string agent_ids = 2;
+}
+
+message CapabilityManifest {
+  string capability_id = 1;
+  string name = 2;
+  string description = 3;
+  string version = 4;
+  repeated string tags = 5;
+  bool requires_workspace = 6;
+  google.protobuf.Struct input_schema = 7;
+  CapabilityScope scope = 8;
+}
+
+message CapabilityRecord {
+  string api_version = 1;
+  CapabilityManifest manifest = 2;
+  CapabilityApprovalStatus approval_status = 3;
+  string approved_by = 4;
+  string rejection_reason = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Agent identity & inter-agent calls
+// ---------------------------------------------------------------------------
+
+message AgentIdentityPackRef {
+  string space_id = 1;
+  string agent_id = 2;
+  string agent_session_id = 3;
+  string root_path = 4;
+  string soul_path = 5;
+  string agent_path = 6;
+  string context_path = 7;
+  string voice_path = 8;
+  string capabilities_path = 9;
+}
+
+message AgentCallHandle {
+  string call_id = 1;
+  AgentCallMode mode = 2;
+  AgentCallStatus status = 3;
+  string space_id = 4;
+  string source_agent_id = 5;
+  string target_agent_id = 6;
+  string lineage_id = 7;
+  int32 hop_count = 8;
+  string error_message = 9;
+  string result_text = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// ---------------------------------------------------------------------------
+// Skill model — declarative context for agents
+// ---------------------------------------------------------------------------
+
+message Skill {
+  string skill_id = 1;
+  string name = 2;
+  string description = 3;
+  // Path to the .md file (relative to skills root or absolute).
+  string source_path = 4;
+  // Tags for matching skills to agents/spaces.
+  repeated string tags = 5;
+  // Which agents or space templates this skill is scoped to.
+  // Empty means globally available.
+  repeated string scoped_agent_ids = 6;
+  repeated string scoped_template_ids = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// ---------------------------------------------------------------------------
+// Action model — executable procedures (runbooks)
+// ---------------------------------------------------------------------------
+
+message ActionStep {
+  int32 order = 1;
+  ActionStepType type = 2;
+  string label = 3;
+  // For SCRIPT: the command or script path.
+  // For PROMPT: the prompt text.
+  // For INVOKE: the capability ID.
+  string content = 4;
+  // For INVOKE: arguments passed to the capability.
+  google.protobuf.Struct params = 5;
+  // If true, failure of this step stops the action.
+  bool required = 6;
+  // Timeout in seconds. 0 = no timeout.
+  int32 timeout_seconds = 7;
+}
+
+message Action {
+  string action_id = 1;
+  string name = 2;
+  string description = 3;
+  // Path to the source .md file.
+  string source_path = 4;
+  repeated string tags = 5;
+  // Capabilities this action requires to run.
+  repeated string required_capabilities = 6;
+  // Ordered steps to execute.
+  repeated ActionStep steps = 7;
+  // Permissions the action needs.
+  ActionPermissions permissions = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ActionPermissions {
+  bool allow_network = 1;
+  bool allow_filesystem = 2;
+  string filesystem_scope = 3;
+  repeated string command_allowlist = 4;
+}
+
+message ActionRun {
+  string run_id = 1;
+  string action_id = 2;
+  string space_id = 3;
+  string agent_id = 4;
+  ActionStatus status = 5;
+  int32 current_step = 6;
+  int32 total_steps = 7;
+  string output = 8;
+  string error = 9;
+  int64 duration_ms = 10;
+  google.protobuf.Timestamp started_at = 11;
+  google.protobuf.Timestamp completed_at = 12;
+}
+
+// ---------------------------------------------------------------------------
+// Experience model — structured reflections produced by spaces
+// ---------------------------------------------------------------------------
+
+message Experience {
+  string experience_id = 1;
+  string space_id = 2;
+  string resource_id = 3;
+  ExperienceStatus status = 4;
+
+  // What the space was trying to do.
+  string goal = 5;
+  // Compressed narrative of what happened.
+  string summary = 6;
+  // What worked well.
+  repeated string strengths = 7;
+  // What didn't work or could improve.
+  repeated string weaknesses = 8;
+  // Specific observations about agent performance.
+  repeated AgentObservation agent_observations = 9;
+  // Free-form tags for retrieval.
+  repeated string tags = 10;
+
+  // Path to the .md file on disk (human-readable, editable).
+  string source_path = 11;
+
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message AgentObservation {
+  string agent_id = 1;
+  string profile_id = 2;
+  // What this agent did well or poorly.
+  string observation = 3;
+  // Optional suggestion for profile adjustment.
+  string profile_delta_suggestion = 4;
+  // Relevance score: how much this observation should influence
+  // future context assembly. 0.0 = ignore, 1.0 = always include.
+  double relevance = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Security model
+//
+// Security is the enforcement mechanism for the manifesto's principle:
+// "the human stays in the loop as coordinator." Agents operate within
+// explicit permission fences. The default is restrictive. Loosening
+// requires deliberate human action.
+// ---------------------------------------------------------------------------
+
+enum SecurityVerdict {
+  SECURITY_VERDICT_UNSPECIFIED = 0;
+  SECURITY_VERDICT_ALLOW = 1;       // Action permitted
+  SECURITY_VERDICT_DENY = 2;        // Action blocked
+  SECURITY_VERDICT_ASK_HUMAN = 3;   // Requires human approval
+  SECURITY_VERDICT_LOG_ONLY = 4;    // Allowed but flagged for audit
+}
+
+enum TrustLevel {
+  TRUST_LEVEL_UNSPECIFIED = 0;
+  TRUST_LEVEL_UNTRUSTED = 1;    // Cross-space artifacts, external input
+  TRUST_LEVEL_AGENT = 2;        // Agent-produced output
+  TRUST_LEVEL_REVIEWED = 3;     // Human-reviewed content
+  TRUST_LEVEL_SYSTEM = 4;       // Gateway-internal, fully trusted
+}
+
+// Per-agent security scope — what an agent can and cannot do.
+// Assigned when an agent is added to a space. The space ceiling
+// is the union of all agent scopes (most restrictive wins globally).
+message AgentSecurityScope {
+  string agent_id = 1;
+  RuntimePermissionMode permission_mode = 2;
+
+  // Explicit capability allowlist. If non-empty, only these
+  // capabilities can be invoked. Empty = all approved capabilities.
+  repeated string allowed_capabilities = 3;
+
+  // Filesystem scope: "" = no access, "/" = full, "/path" = scoped.
+  string filesystem_scope = 4;
+  bool allow_network = 5;
+  bool allow_shell = 6;
+  repeated string command_allowlist = 7;
+
+  // Max tokens this agent can consume per turn.
+  int32 max_tokens_per_turn = 8;
+  // Max tool calls per turn (prevents runaway loops).
+  int32 max_tool_calls_per_turn = 9;
+
+  // Whether this agent's outputs require human review before
+  // being passed to capabilities or other agents.
+  bool require_output_review = 10;
+}
+
+// Security policy applied at the space or system level.
+message SecurityPolicy {
+  string policy_id = 1;
+
+  // Default permission mode for new agents in this space.
+  RuntimePermissionMode default_permission_mode = 2;
+
+  // What to do when an agent tries something outside its scope.
+  SecurityVerdict out_of_scope_verdict = 3;
+
+  // Output inspection: if true, the gateway runs a policy check
+  // on agent output before it reaches any capability or tool.
+  bool inspect_agent_output = 4;
+
+  // Maximum inter-agent call depth (prevents infinite delegation).
+  int32 max_call_depth = 5;
+
+  // Whether cross-space artifact access requires human approval.
+  bool cross_space_requires_approval = 6;
+
+  // Audit: if true, all capability invocations are logged.
+  // (Should almost always be true.)
+  bool audit_capability_invocations = 7;
+
+  // Redaction mode for audit logs.
+  string redaction_mode = 8;
+
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Provenance of an artifact — tracks where it came from and
+// whether it's been human-reviewed. Used to enforce trust
+// boundaries between spaces.
+message ArtifactProvenance {
+  string artifact_id = 1;
+  TrustLevel trust_level = 2;
+  // The space that produced this artifact.
+  string source_space_id = 3;
+  // The agent that produced it (empty if human-created).
+  string source_agent_id = 4;
+  // The resource (gateway) it originated from.
+  string source_resource_id = 5;
+  // Whether a human has reviewed this artifact.
+  bool human_reviewed = 6;
+  string reviewed_by = 7;
+  google.protobuf.Timestamp reviewed_at = 8;
+}
+
+message Artifact {
+  string artifact_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string artifact_type = 5;
+  string uri = 6;
+  string label = 7;
+  string mime_type = 8;
+  int64 size_bytes = 9;
+  ArtifactProvenance provenance = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+// ---------------------------------------------------------------------------
+// Gateway sync model
+//
+// Gateways can exchange resources (skills, actions, experiences,
+// profiles) via a pull model. The requesting gateway asks for
+// specific resources; the responding gateway decides what to share.
+// ---------------------------------------------------------------------------
+
+enum SyncResourceType {
+  SYNC_RESOURCE_TYPE_UNSPECIFIED = 0;
+  SYNC_RESOURCE_TYPE_SKILL = 1;
+  SYNC_RESOURCE_TYPE_ACTION = 2;
+  SYNC_RESOURCE_TYPE_EXPERIENCE = 3;
+  SYNC_RESOURCE_TYPE_PROFILE = 4;
+}
+
+message SyncResourceRef {
+  SyncResourceType type = 1;
+  string resource_id = 2;          // Which gateway it belongs to
+  string id = 3;                   // The skill/action/experience/profile ID
+  string version_hash = 4;         // Content hash for change detection
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message SyncResourcePayload {
+  SyncResourceRef ref = 1;
+  // Serialized content — the shape depends on the type.
+  // For skills/actions: the markdown source.
+  // For experiences: the Experience message serialized.
+  // For profiles: the profile + active revision.
+  bytes content = 2;
+}
+
+message SpaceResource {
+  string resource_id = 1;
+  string space_id = 2;
+  string uri = 3;
+  // "folder" or "url"
+  string type = 4;
+  string label = 5;
+  google.protobuf.Timestamp added_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Zero-trust space sharing model
+// ---------------------------------------------------------------------------
+
+enum SpaceShareAccessMode {
+  SPACE_SHARE_ACCESS_MODE_UNSPECIFIED = 0;
+  SPACE_SHARE_ACCESS_MODE_READ_ONLY = 1;
+  SPACE_SHARE_ACCESS_MODE_COLLABORATOR = 2;
+}
+
+enum SpaceShareInviteStatus {
+  SPACE_SHARE_INVITE_STATUS_UNSPECIFIED = 0;
+  SPACE_SHARE_INVITE_STATUS_ACTIVE = 1;
+  SPACE_SHARE_INVITE_STATUS_USED = 2;
+  SPACE_SHARE_INVITE_STATUS_REVOKED = 3;
+  SPACE_SHARE_INVITE_STATUS_EXPIRED = 4;
+}
+
+enum SpaceParticipantStatus {
+  SPACE_PARTICIPANT_STATUS_UNSPECIFIED = 0;
+  SPACE_PARTICIPANT_STATUS_ACTIVE = 1;
+  SPACE_PARTICIPANT_STATUS_REVOKED = 2;
+}
+
+enum DeviceIdentityStatus {
+  DEVICE_IDENTITY_STATUS_UNSPECIFIED = 0;
+  DEVICE_IDENTITY_STATUS_ACTIVE = 1;
+  DEVICE_IDENTITY_STATUS_REVOKED = 2;
+  DEVICE_IDENTITY_STATUS_ROTATED = 3;
+}
+
+message DeviceIdentity {
+  string device_id = 1;
+  string public_key = 2;
+  string platform = 3;
+  string key_version = 4;
+  DeviceIdentityStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  string principal_id = 9;
+  google.protobuf.Timestamp revoked_at = 10;
+}
+
+message DeviceAuthProof {
+  string device_id = 1;
+  string signature = 2;
+  string nonce = 3;
+  string key_version = 4;
+}
+
+message SpaceShareInvite {
+  string invite_id = 1;
+  string space_id = 2;
+  string issued_by_principal_id = 3;
+  SpaceShareAccessMode mode = 4;
+  SpaceShareInviteStatus status = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  // Present only on invite-creation response.
+  string invite_token = 9;
+}
+
+message SpaceParticipant {
+  string participant_id = 1;
+  string space_id = 2;
+  string principal_id = 3;
+  string principal_type = 4;
+  SpaceShareAccessMode mode = 5;
+  SpaceParticipantStatus status = 6;
+  string joined_via_invite_id = 7;
+  DeviceIdentity device = 8;
+  google.protobuf.Timestamp joined_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp revoked_at = 11;
+}
+
+// ---------------------------------------------------------------------------
+// Agent profile model
+//
+// A profile defines who an agent *is*: its personality, default skills,
+// preferred model, and security posture. Profiles are versioned through
+// revisions. Experiences propose profile changes via PersonalityInsight;
+// the human reviews and accepts/rejects them. This closes the growth loop:
+//   Space → Experience → Insight → Profile revision → better agent.
+// ---------------------------------------------------------------------------
+
+message AgentProfile {
+  string profile_id = 1;
+  string name = 2;
+  string description = 3;
+
+  // The core personality prompt injected into the agent's system context.
+  string personality_prompt = 4;
+
+  // Default skills attached to this profile.
+  repeated string default_skill_ids = 5;
+  // Default actions this profile can execute.
+  repeated string default_action_ids = 6;
+
+  // Provider and model preferences (hints, not hard locks).
+  string provider_hint = 7;
+  string model_hint = 8;
+
+  // Whether this profile can act as a space moderator.
+  bool can_moderate = 9;
+  // Whether this is the default profile for new spaces.
+  bool is_default = 10;
+
+  // Security scope template: when this agent joins a space,
+  // these are the default permissions it starts with.
+  AgentSecurityScope default_security_scope = 11;
+
+  // Revision management.
+  int32 active_revision = 12;
+  ProfileStatus status = 13;
+
+  // Source attribution (e.g. "user", "import", "sync").
+  string source = 14;
+
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  // Additive multi-model config; legacy model_hint remains supported.
+  ModelConfig model_config = 17;
+}
+
+message AgentProfileRevision {
+  string profile_id = 1;
+  int32 revision = 2;
+
+  string name = 3;
+  string description = 4;
+  string personality_prompt = 5;
+  repeated string default_skill_ids = 6;
+  repeated string default_action_ids = 7;
+  string provider_hint = 8;
+  string model_hint = 9;
+  bool can_moderate = 10;
+  bool is_default = 11;
+  AgentSecurityScope default_security_scope = 12;
+  string source = 13;
+
+  // What triggered this revision (e.g. "manual edit", "insight:ins_abc123").
+  string change_reason = 14;
+
+  google.protobuf.Timestamp created_at = 15;
+  // Additive multi-model config; legacy model_hint remains supported.
+  ModelConfig model_config = 16;
+}
+
+message ModelConfig {
+  repeated string preferred_models = 1;
+  repeated string fallback_models = 2;
+  google.protobuf.Struct constraints = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Personality insight — the bridge between experiences and profiles
+//
+// When a space session ends and an Experience is generated, the gateway
+// can produce PersonalityInsights for each agent that participated.
+// Each insight proposes a specific change to the agent's profile.
+// The human reviews the insight and accepts, rejects, or edits it.
+// Accepted insights become new profile revisions.
+// ---------------------------------------------------------------------------
+
+message PersonalityInsight {
+  string insight_id = 1;
+  // The experience that produced this insight.
+  string experience_id = 2;
+  // The space where the experience occurred.
+  string space_id = 3;
+  // The profile this insight applies to.
+  string profile_id = 4;
+  // The revision the insight was generated against.
+  int32 base_revision = 5;
+
+  // The proposed patch to the personality prompt.
+  // This is a human-readable diff or replacement suggestion.
+  string proposed_prompt_delta = 6;
+  // Skills to add or remove.
+  repeated string add_skill_ids = 7;
+  repeated string remove_skill_ids = 8;
+  // Actions to add or remove.
+  repeated string add_action_ids = 9;
+  repeated string remove_action_ids = 10;
+
+  // Why this change is being proposed.
+  string rationale = 11;
+  // Confidence score: how strongly the gateway recommends this change.
+  double confidence = 12;
+
+  InsightStatus status = 13;
+  // If accepted, which revision was created.
+  int32 applied_revision = 14;
+  // If the human edited the insight before applying.
+  string human_edit_note = 15;
+
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+// ---------------------------------------------------------------------------
+// Moderator profile — specialized profile for space moderation
+// ---------------------------------------------------------------------------
+
+message ModeratorProfile {
+  string profile_id = 1;
+  string name = 2;
+  string description = 3;
+  // The moderation prompt (distinct from personality prompt).
+  string moderation_prompt = 4;
+  repeated string default_skill_ids = 5;
+
+  // Moderation policy.
+  ModeratorPolicy policy = 6;
+
+  bool is_default = 7;
+  ProfileStatus status = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ModeratorPolicy {
+  bool enforce_turn_order = 1;
+  bool require_final_synthesis = 2;
+  bool allow_direct_agent_dialogue = 3;
+  int32 max_consecutive_turns_per_agent = 4;
+  bool intervene_on_budget_threshold = 5;
+  bool intervene_on_permission_denial = 6;
+  bool intervene_on_security_violation = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Feedback model — the human-in-the-loop protocol
+//
+// When an agent needs human input (permission, budget approval, conflict
+// resolution, security escalation), it creates a FeedbackRequest. The
+// native app presents this to the user. The user's response is a
+// FeedbackResponse that the gateway routes back to the agent.
+// ---------------------------------------------------------------------------
+
+message FeedbackRequest {
+  string feedback_id = 1;
+  string space_id = 2;
+  string agent_id = 3;
+  // The turn that triggered this feedback request.
+  string turn_id = 4;
+
+  FeedbackCategory category = 5;
+  FeedbackStatus status = 6;
+
+  // Human-readable description of what the agent needs.
+  string prompt = 7;
+  // Structured context (e.g. the capability invocation that was blocked).
+  google.protobuf.Struct context = 8;
+
+  // Options the human can choose from (if applicable).
+  repeated string options = 9;
+  // Whether the agent can continue with a default action if no response.
+  bool has_default_action = 10;
+  // Timeout: how long to wait before falling back to default (0 = forever).
+  int32 timeout_seconds = 11;
+
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp expires_at = 13;
+}
+
+message FeedbackResponse {
+  string feedback_id = 1;
+  FeedbackResponseType response_type = 2;
+  // The selected option index, or -1 for free-form.
+  int32 selected_option = 3;
+  // Free-form human input (for REVISE or custom responses).
+  string message = 4;
+  // Structured modifications (for REVISE).
+  google.protobuf.Struct modifications = 5;
+  google.protobuf.Timestamp responded_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Runtime ledger model
+// ---------------------------------------------------------------------------
+
+enum IntegrationClass {
+  INTEGRATION_CLASS_UNSPECIFIED = 0;
+  INTEGRATION_CLASS_CLOUD = 1;
+  INTEGRATION_CLASS_EXECUTOR = 2;
+  INTEGRATION_CLASS_LOCAL_RUNTIME = 3;
+}
+
+enum IntegrationStatus {
+  INTEGRATION_STATUS_UNSPECIFIED = 0;
+  INTEGRATION_STATUS_INSTALLED = 1;
+  INTEGRATION_STATUS_MISSING = 2;
+  INTEGRATION_STATUS_NEEDS_KEY = 3;
+  INTEGRATION_STATUS_NEEDS_AUTH = 4;
+  INTEGRATION_STATUS_REACHABLE = 5;
+  INTEGRATION_STATUS_NO_MODELS_LOADED = 6;
+  INTEGRATION_STATUS_POLICY_BLOCKED = 7;
+  INTEGRATION_STATUS_UNSUPPORTED_ON_DEVICE = 8;
+  INTEGRATION_STATUS_ERROR = 9;
+}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_CREATED = 1;
+  RUN_STATUS_RUNNING = 2;
+  RUN_STATUS_WAITING_APPROVAL = 3;
+  RUN_STATUS_COMPLETED = 4;
+  RUN_STATUS_FAILED = 5;
+  RUN_STATUS_CANCELED = 6;
+}
+
+enum RunStepKind {
+  RUN_STEP_KIND_UNSPECIFIED = 0;
+  RUN_STEP_KIND_MODEL_INVOCATION = 1;
+  RUN_STEP_KIND_EXECUTOR_INVOCATION = 2;
+  RUN_STEP_KIND_LOCAL_RUNTIME_INVOCATION = 3;
+  RUN_STEP_KIND_TOOL_INVOCATION = 4;
+  RUN_STEP_KIND_APPROVAL_WAIT = 5;
+  RUN_STEP_KIND_ARTIFACT_WRITE = 6;
+  RUN_STEP_KIND_SUMMARY = 7;
+  RUN_STEP_KIND_OUTPUT_STREAM = 8;
+}
+
+enum RunStepStatus {
+  RUN_STEP_STATUS_UNSPECIFIED = 0;
+  RUN_STEP_STATUS_PENDING = 1;
+  RUN_STEP_STATUS_RUNNING = 2;
+  RUN_STEP_STATUS_WAITING_APPROVAL = 3;
+  RUN_STEP_STATUS_COMPLETED = 4;
+  RUN_STEP_STATUS_FAILED = 5;
+  RUN_STEP_STATUS_CANCELED = 6;
+}
+
+enum InvocationStatus {
+  INVOCATION_STATUS_UNSPECIFIED = 0;
+  INVOCATION_STATUS_PENDING = 1;
+  INVOCATION_STATUS_RUNNING = 2;
+  INVOCATION_STATUS_COMPLETED = 3;
+  INVOCATION_STATUS_FAILED = 4;
+  INVOCATION_STATUS_CANCELED = 5;
+}
+
+enum ApprovalRequestStatus {
+  APPROVAL_REQUEST_STATUS_UNSPECIFIED = 0;
+  APPROVAL_REQUEST_STATUS_PENDING = 1;
+  APPROVAL_REQUEST_STATUS_APPROVED = 2;
+  APPROVAL_REQUEST_STATUS_REJECTED = 3;
+  APPROVAL_REQUEST_STATUS_REVISED = 4;
+  APPROVAL_REQUEST_STATUS_DEFERRED = 5;
+  APPROVAL_REQUEST_STATUS_EXPIRED = 6;
+}
+
+message Run {
+  string run_id = 1;
+  string space_id = 2;
+  string space_uid = 3;
+  string compatibility_turn_id = 4;
+  RunStatus status = 5;
+  string requested_by_principal_id = 6;
+  string requested_by_device_id = 7;
+  string target_agent_id = 8;
+  string trigger_source = 9;
+  string input_text = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp started_at = 12;
+  google.protobuf.Timestamp completed_at = 13;
+  string error_code = 14;
+  string error_message = 15;
+}
+
+message RunStep {
+  string step_id = 1;
+  string run_id = 2;
+  string space_id = 3;
+  string agent_id = 4;
+  int32 sequence = 5;
+  RunStepKind kind = 6;
+  RunStepStatus status = 7;
+  string title = 8;
+  string detail = 9;
+  string tool_name = 10;
+  string provider_id = 11;
+  string model_id = 12;
+  google.protobuf.Struct payload = 13;
+  google.protobuf.Struct output = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp started_at = 16;
+  google.protobuf.Timestamp completed_at = 17;
+  string error_message = 18;
+}
+
+message InvocationRecord {
+  string invocation_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string integration_id = 5;
+  IntegrationClass integration_class = 6;
+  InvocationStatus status = 7;
+  string provider_id = 8;
+  string model_id = 9;
+  google.protobuf.Struct request = 10;
+  google.protobuf.Struct response = 11;
+  google.protobuf.Struct usage = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp started_at = 14;
+  google.protobuf.Timestamp completed_at = 15;
+  string error_message = 16;
+}
+
+message ApprovalRequestRecord {
+  string approval_request_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string compatibility_turn_id = 5;
+  string agent_id = 6;
+  FeedbackCategory category = 7;
+  ApprovalRequestStatus status = 8;
+  string description = 9;
+  google.protobuf.Struct context = 10;
+  repeated string options = 11;
+  string resolution = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp resolved_at = 14;
+}
+
+message UsageRecord {
+  string usage_record_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string invocation_id = 4;
+  string space_id = 5;
+  string provider_id = 6;
+  string model_id = 7;
+  int32 prompt_tokens = 8;
+  int32 completion_tokens = 9;
+  int32 total_tokens = 10;
+  double estimated_cost_usd = 11;
+  google.protobuf.Struct metadata = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message IntegrationCatalogEntry {
+  string integration_id = 1;
+  string display_name = 2;
+  IntegrationClass integration_class = 3;
+  IntegrationStatus status = 4;
+  bool recommended = 5;
+  bool configured = 6;
+  bool reachable = 7;
+  bool install_detected = 8;
+  bool supports_hosted_billing = 9;
+  string auth_kind = 10;
+  string install_hint = 11;
+  string base_url = 12;
+  repeated string models = 13;
+  google.protobuf.Timestamp last_checked_at = 14;
+  string error_message = 15;
+}
+
+message IntegrationRequest {
+  string integration_request_id = 1;
+  IntegrationClass integration_class = 2;
+  string requested_name = 3;
+  string use_case = 4;
+  string source_url = 5;
+  string notes = 6;
+  string principal_id = 7;
+  string device_id = 8;
+  string status = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+// ---------------------------------------------------------------------------
+// Agent assignment — how agents are enrolled in spaces
+// ---------------------------------------------------------------------------
+
+message SpaceAgentAssignment {
+  string space_id = 1;
+  string agent_id = 2;
+  string profile_id = 3;
+  // Override the profile's default security scope for this space.
+  AgentSecurityScope security_scope = 4;
+  // Role within this space.
+  CoordinatorRole role = 5;
+  // Turn order position (for sequential strategies).
+  int32 turn_order = 6;
+  // Whether this is the primary agent (for primary_only strategy).
+  bool is_primary = 7;
+  google.protobuf.Timestamp assigned_at = 8;
+}
+
+// ---------------------------------------------------------------------------
+// Turn model configuration — detailed settings per strategy
+// ---------------------------------------------------------------------------
+
+message TurnModelConfig {
+  TurnModelStrategy strategy = 1;
+
+  // For DEBATE_SYNTHESIS:
+  int32 debate_rounds = 2;           // Number of rounds before synthesis
+  string synthesizer_agent_id = 3;   // Who synthesizes (empty = moderator)
+
+  // For PARALLEL_RACE:
+  int32 race_timeout_seconds = 4;    // How long to wait for all agents
+
+  // For ROUND_ROBIN:
+  int32 max_rounds = 5;              // Max full rotations (0 = unlimited)
+
+  // For ADAPTIVE_AUTO:
+  string adaptation_policy = 6;      // e.g. "cost_optimize", "quality_first"
+
+  // For SEQUENTIAL_ALL:
+  bool stop_on_first_failure = 7;    // Whether one agent failing stops the chain
+}

@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service UsageService {
+  rpc GetRuntimePolicy(GetRuntimePolicyRequest) returns (GetRuntimePolicyResponse);
+  rpc SetRuntimePolicy(SetRuntimePolicyRequest) returns (SetRuntimePolicyResponse);
+  rpc SetBehaviorProfile(SetBehaviorProfileRequest) returns (SetBehaviorProfileResponse);
+  rpc GetUsageSnapshot(GetUsageSnapshotRequest) returns (GetUsageSnapshotResponse);
+}
+
+message GetRuntimePolicyRequest {
+  string api_version = 1;
+}
+
+message GetRuntimePolicyResponse {
+  string api_version = 1;
+  RuntimePolicy policy = 2;
+}
+
+message SetRuntimePolicyRequest {
+  string api_version = 1;
+  RuntimePermissionMode permission_mode = 2;
+  bool warning_acknowledged = 3;
+  string idempotency_key = 4;
+}
+
+message SetRuntimePolicyResponse {
+  string api_version = 1;
+  RuntimePolicy policy = 2;
+}
+
+message SetBehaviorProfileRequest {
+  string api_version = 1;
+  BehaviorProfile behavior_profile = 2;
+  string idempotency_key = 3;
+}
+
+message SetBehaviorProfileResponse {
+  string api_version = 1;
+  RuntimePolicy policy = 2;
+}
+
+enum ProviderUsageStatus {
+  PROVIDER_USAGE_STATUS_UNSPECIFIED = 0;
+  PROVIDER_USAGE_STATUS_UNKNOWN = 1;
+  PROVIDER_USAGE_STATUS_AVAILABLE = 2;
+  PROVIDER_USAGE_STATUS_UNAVAILABLE = 3;
+}
+
+message UsageWindowSummary {
+  int32 input_tokens = 1;
+  int32 output_tokens = 2;
+  int32 total_tokens = 3;
+  double spent_usd = 4;
+}
+
+message BudgetSummary {
+  double soft_cap_usd = 1;
+  double hard_cap_usd = 2;
+  double warning_threshold = 3;
+  double spent_usd = 4;
+  double left_usd = 5;
+}
+
+message ProviderUsageSnapshot {
+  string provider_id = 1;
+  ProviderUsageStatus status = 2;
+  int32 input_tokens = 3;
+  int32 output_tokens = 4;
+  int32 total_tokens = 5;
+  double spent_usd = 6;
+  string message = 7;
+}
+
+message VoiceUsageWindowSummary {
+  double stt_seconds = 1;
+  int32 tts_chars = 2;
+  double tts_seconds = 3;
+  double estimated_cost_usd = 4;
+}
+
+message VoiceUsageSourceSummary {
+  VoiceProviderSource source = 1;
+  VoiceUsageWindowSummary usage = 2;
+}
+
+message VoiceUsageLockSummary {
+  bool enabled = 1;
+  double managed_stt_seconds_monthly_limit = 2;
+  double managed_tts_chars_monthly_limit = 3;
+  double managed_tts_seconds_monthly_limit = 4;
+  double managed_current_month_stt_seconds = 5;
+  double managed_current_month_tts_chars = 6;
+  double managed_current_month_tts_seconds = 7;
+}
+
+message VoiceUsageWindows {
+  VoiceUsageWindowSummary last_5h = 1;
+  VoiceUsageWindowSummary last_7d = 2;
+  VoiceUsageWindowSummary last_30d = 3;
+  VoiceUsageWindowSummary lifetime = 4;
+}
+
+message VoiceUsageSnapshot {
+  VoiceUsageWindows windows = 1;
+  repeated VoiceUsageSourceSummary by_source = 2;
+  VoiceUsageLockSummary lock = 3;
+}
+
+message UsageWindows {
+  UsageWindowSummary last_5h = 1;
+  UsageWindowSummary last_7d = 2;
+  UsageWindowSummary last_30d = 3;
+  UsageWindowSummary lifetime = 4;
+}
+
+message UsageSnapshot {
+  google.protobuf.Timestamp computed_at = 1;
+  string currency = 2;
+  UsageWindows windows = 3;
+  BudgetSummary budget = 4;
+  repeated ProviderUsageSnapshot provider_usage = 5;
+  VoiceUsageSnapshot voice = 6;
+}
+
+message GetUsageSnapshotRequest {
+  string api_version = 1;
+}
+
+message GetUsageSnapshotResponse {
+  string api_version = 1;
+  UsageSnapshot snapshot = 2;
+}

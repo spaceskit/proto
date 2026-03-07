@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// ExperienceService manages structured reflections produced by spaces.
+//
+// When a space completes (or on demand), the gateway generates an
+// experience — a markdown file capturing what happened, what worked,
+// and what didn't. These experiences inform future agent context:
+// when an agent enters a new space, relevant experiences are selected
+// and injected alongside its personality prompt.
+//
+// Experiences are the mechanism for identity continuity without
+// burdening agents with perfect recall. The gateway curates what
+// to surface, not the agent.
+service ExperienceService {
+  // Generate an experience from a completed (or active) space.
+  rpc GenerateExperience(GenerateExperienceRequest) returns (GenerateExperienceResponse);
+
+  // Retrieve a single experience.
+  rpc GetExperience(GetExperienceRequest) returns (GetExperienceResponse);
+
+  // List experiences, with filtering for context assembly.
+  rpc ListExperiences(ListExperiencesRequest) returns (ListExperiencesResponse);
+
+  // Human review: accept, reject, or edit an experience.
+  rpc ReviewExperience(ReviewExperienceRequest) returns (ReviewExperienceResponse);
+
+  // Archive an experience (keeps it but stops surfacing it).
+  rpc ArchiveExperience(ArchiveExperienceRequest) returns (ArchiveExperienceResponse);
+
+  // Query experiences relevant to a given agent + goal.
+  // Used internally by the gateway when assembling agent context
+  // for a new space. Returns a curated, relevance-scored selection.
+  rpc QueryRelevantExperiences(QueryRelevantExperiencesRequest) returns (QueryRelevantExperiencesResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Generate
+// ---------------------------------------------------------------------------
+
+message GenerateExperienceRequest {
+  string space_id = 1;
+  // If true, generate even if the space is still active.
+  bool allow_active = 2;
+}
+
+message GenerateExperienceResponse {
+  Experience experience = 1;
+}
+
+// ---------------------------------------------------------------------------
+// CRUD
+// ---------------------------------------------------------------------------
+
+message GetExperienceRequest {
+  string experience_id = 1;
+}
+
+message GetExperienceResponse {
+  Experience experience = 1;
+  // Full markdown content.
+  string content = 2;
+}
+
+message ListExperiencesRequest {
+  // Filter by resource (gateway instance).
+  string resource_id = 1;
+  // Filter by space.
+  string space_id = 2;
+  // Filter by agent (experiences where this agent was observed).
+  string agent_id = 3;
+  // Filter by status.
+  repeated ExperienceStatus statuses = 4;
+  // Filter by tags.
+  repeated string tags = 5;
+  // Time range.
+  google.protobuf.Timestamp created_after = 6;
+  google.protobuf.Timestamp created_before = 7;
+  int32 limit = 8;
+  int32 offset = 9;
+}
+
+message ListExperiencesResponse {
+  repeated Experience experiences = 1;
+  int32 total = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Review
+// ---------------------------------------------------------------------------
+
+message ReviewExperienceRequest {
+  string experience_id = 1;
+  ExperienceStatus new_status = 2;
+  // Optional: human can edit the summary and observations.
+  string revised_summary = 3;
+  repeated AgentObservation revised_observations = 4;
+}
+
+message ReviewExperienceResponse {
+  Experience experience = 1;
+}
+
+message ArchiveExperienceRequest {
+  string experience_id = 1;
+}
+
+message ArchiveExperienceResponse {
+  Ack ack = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Context assembly query
+// ---------------------------------------------------------------------------
+
+message QueryRelevantExperiencesRequest {
+  // The agent being assembled.
+  string agent_id = 1;
+  string profile_id = 2;
+  // The goal of the new space (used for semantic matching).
+  string goal = 3;
+  // Tags from the new space (used for tag overlap scoring).
+  repeated string space_tags = 4;
+  // Max experiences to return.
+  int32 limit = 5;
+  // Minimum relevance score (0.0-1.0) to include.
+  double min_relevance = 6;
+}
+
+message QueryRelevantExperiencesResponse {
+  repeated ScoredExperience experiences = 1;
+}
+
+message ScoredExperience {
+  Experience experience = 1;
+  double relevance_score = 2;
+  // Why this experience was selected.
+  string match_reason = 3;
+}

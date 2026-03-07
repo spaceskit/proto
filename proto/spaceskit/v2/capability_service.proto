@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+service CapabilityService {
+  rpc ProposeCapability(ProposeCapabilityRequest) returns (ProposeCapabilityResponse);
+  rpc ApproveCapability(ApproveCapabilityRequest) returns (ApproveCapabilityResponse);
+  rpc RejectCapability(RejectCapabilityRequest) returns (RejectCapabilityResponse);
+  rpc ListCapabilities(ListCapabilitiesRequest) returns (ListCapabilitiesResponse);
+  rpc GetCapability(GetCapabilityRequest) returns (GetCapabilityResponse);
+}
+
+message ProposeCapabilityRequest {
+  string api_version = 1;
+  CapabilityManifest manifest = 2;
+  string proposed_by = 3;
+  string idempotency_key = 4;
+}
+
+message ProposeCapabilityResponse {
+  string api_version = 1;
+  CapabilityRecord capability = 2;
+}
+
+message ApproveCapabilityRequest {
+  string api_version = 1;
+  string capability_id = 2;
+  string approved_by = 3;
+  string idempotency_key = 4;
+}
+
+message ApproveCapabilityResponse {
+  string api_version = 1;
+  CapabilityRecord capability = 2;
+}
+
+message RejectCapabilityRequest {
+  string api_version = 1;
+  string capability_id = 2;
+  string rejected_by = 3;
+  string reason = 4;
+  string idempotency_key = 5;
+}
+
+message RejectCapabilityResponse {
+  string api_version = 1;
+  CapabilityRecord capability = 2;
+}
+
+message ListCapabilitiesRequest {
+  string api_version = 1;
+  string space_template_id = 2;
+  string agent_id = 3;
+  CapabilityApprovalStatus status = 4;
+}
+
+message ListCapabilitiesResponse {
+  string api_version = 1;
+  repeated CapabilityRecord capabilities = 2;
+}
+
+message GetCapabilityRequest {
+  string api_version = 1;
+  string capability_id = 2;
+}
+
+message GetCapabilityResponse {
+  string api_version = 1;
+  CapabilityRecord capability = 2;
+}

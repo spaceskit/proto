@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+
+service GatewayService {
+  rpc GetGatewayPolicy(GetGatewayPolicyRequest) returns (GetGatewayPolicyResponse);
+  rpc UpdateGatewayPolicy(UpdateGatewayPolicyRequest) returns (UpdateGatewayPolicyResponse);
+  rpc FactoryResetGateway(FactoryResetGatewayRequest) returns (FactoryResetGatewayResponse);
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+  rpc RotateDeviceKey(RotateDeviceKeyRequest) returns (RotateDeviceKeyResponse);
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+}
+
+message GatewayPolicy {
+  repeated string allowed_capability_types = 1;
+  repeated string denied_capability_types = 2;
+  repeated string allowed_skill_ids = 3;
+  repeated string denied_skill_ids = 4;
+  google.protobuf.Struct global_flags = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message GatewayStringListPatch {
+  repeated string values = 1;
+}
+
+message GetGatewayPolicyRequest {
+  string api_version = 1;
+}
+
+message GetGatewayPolicyResponse {
+  string api_version = 1;
+  GatewayPolicy policy = 2;
+}
+
+message UpdateGatewayPolicyRequest {
+  string api_version = 1;
+  GatewayStringListPatch allowed_capability_types = 2;
+  GatewayStringListPatch denied_capability_types = 3;
+  GatewayStringListPatch allowed_skill_ids = 4;
+  GatewayStringListPatch denied_skill_ids = 5;
+  google.protobuf.Struct global_flags = 6;
+  // Optional explicit patch paths for additive/clear updates.
+  google.protobuf.FieldMask update_mask = 7;
+}
+
+message UpdateGatewayPolicyResponse {
+  string api_version = 1;
+  GatewayPolicy policy = 2;
+}
+
+message FactoryResetGatewayRequest {
+  string api_version = 1;
+  string confirmation = 2;
+}
+
+message FactoryResetGatewayResponse {
+  string api_version = 1;
+  string gateway_id = 2;
+  string gateway_uuid = 3;
+  google.protobuf.Timestamp reset_at = 4;
+  uint32 tables_cleared = 5;
+  uint64 rows_deleted = 6;
+}
+
+message RegisterDeviceRequest {
+  string api_version = 1;
+  string device_id = 2;
+  string public_key = 3;
+  string platform = 4;
+}
+
+message RegisterDeviceResponse {
+  string api_version = 1;
+  DeviceIdentity device = 2;
+  bool created = 3;
+}
+
+message RotateDeviceKeyRequest {
+  string api_version = 1;
+  string device_id = 2;
+  string next_public_key = 3;
+  string platform = 4;
+}
+
+message RotateDeviceKeyResponse {
+  string api_version = 1;
+  DeviceIdentity device = 2;
+}
+
+message RevokeDeviceRequest {
+  string api_version = 1;
+  string device_id = 2;
+}
+
+message RevokeDeviceResponse {
+  string api_version = 1;
+  string device_id = 2;
+  bool revoked = 3;
+  DeviceIdentity device = 4;
+}
+
+message ListDevicesRequest {
+  string api_version = 1;
+  bool include_revoked = 2;
+}
+
+message ListDevicesResponse {
+  string api_version = 1;
+  repeated DeviceIdentity devices = 2;
+}

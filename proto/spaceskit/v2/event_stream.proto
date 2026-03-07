@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service EventStreamService {
+  rpc SubscribeSpaceTrace(SubscribeSpaceTraceRequest) returns (stream TraceEventEnvelope);
+}
+
+enum TraceEventType {
+  TRACE_EVENT_TYPE_UNSPECIFIED = 0;
+  TRACE_EVENT_TYPE_SPACE_STATE_CHANGED = 1;
+  TRACE_EVENT_TYPE_AGENT_JOINED = 2;
+  TRACE_EVENT_TYPE_AGENT_LEFT = 3;
+  TRACE_EVENT_TYPE_MESSAGE_RECEIVED = 4;
+  TRACE_EVENT_TYPE_MESSAGE_EMITTED = 5;
+  TRACE_EVENT_TYPE_TOOL_CALL_STARTED = 6;
+  TRACE_EVENT_TYPE_TOOL_CALL_COMPLETED = 7;
+  TRACE_EVENT_TYPE_ROUTING_DECISION = 8;
+  TRACE_EVENT_TYPE_FALLBACK_USED = 9;
+  TRACE_EVENT_TYPE_AGENT_CALL_STARTED = 10;
+  TRACE_EVENT_TYPE_AGENT_CALL_COMPLETED = 11;
+  TRACE_EVENT_TYPE_AGENT_CALL_BLOCKED_LOOP_GUARD = 12;
+  TRACE_EVENT_TYPE_VOICE_INTENT_CLASSIFIED = 13;
+  TRACE_EVENT_TYPE_VOICE_CLARIFICATION_REQUESTED = 14;
+  TRACE_EVENT_TYPE_CAPABILITY_CHECK_FAILED = 15;
+  TRACE_EVENT_TYPE_CAPABILITY_APPROVAL_CHANGED = 16;
+  TRACE_EVENT_TYPE_RECOVERY_REPLAY_STARTED = 17;
+  TRACE_EVENT_TYPE_RECOVERY_REPLAY_COMPLETED = 18;
+  // New: action execution events
+  TRACE_EVENT_TYPE_ACTION_STARTED = 19;
+  TRACE_EVENT_TYPE_ACTION_STEP_COMPLETED = 20;
+  TRACE_EVENT_TYPE_ACTION_COMPLETED = 21;
+  TRACE_EVENT_TYPE_ACTION_FAILED = 22;
+  // Experience lifecycle
+  TRACE_EVENT_TYPE_EXPERIENCE_GENERATED = 23;
+  TRACE_EVENT_TYPE_EXPERIENCE_REVIEWED = 24;
+  // Profile & personality events
+  TRACE_EVENT_TYPE_PROFILE_CREATED = 25;
+  TRACE_EVENT_TYPE_PROFILE_UPDATED = 26;
+  TRACE_EVENT_TYPE_PROFILE_ARCHIVED = 27;
+  TRACE_EVENT_TYPE_PROFILE_REVISION_ACTIVATED = 28;
+  TRACE_EVENT_TYPE_INSIGHT_GENERATED = 29;
+  TRACE_EVENT_TYPE_INSIGHT_REVIEWED = 30;
+  // Feedback (human-in-the-loop) events
+  TRACE_EVENT_TYPE_FEEDBACK_REQUESTED = 31;
+  TRACE_EVENT_TYPE_FEEDBACK_RESOLVED = 32;
+  TRACE_EVENT_TYPE_FEEDBACK_EXPIRED = 33;
+  // Agent provisioning events
+  TRACE_EVENT_TYPE_AGENT_ASSIGNED = 34;
+  TRACE_EVENT_TYPE_AGENT_UNASSIGNED = 35;
+  TRACE_EVENT_TYPE_AGENT_SCOPE_CHANGED = 36;
+  // Security events
+  TRACE_EVENT_TYPE_SECURITY_VIOLATION = 37;
+  TRACE_EVENT_TYPE_SECURITY_ESCALATION = 38;
+  // Orchestrator summary events
+  TRACE_EVENT_TYPE_ORCHESTRATOR_SUMMARY_COMPLETED = 39;
+  TRACE_EVENT_TYPE_ORCHESTRATOR_SUMMARY_FAILED = 40;
+}
+
+message TraceEventEnvelope {
+  string api_version = 1;
+  string trace_id = 2;
+  string space_id = 3;
+  string turn_id = 4;
+  string actor_id = 5;
+  TraceEventType event_type = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  google.protobuf.Struct payload = 8;
+  // Immutable UUID for globally stable space identity.
+  string space_uid = 9;
+}
+
+message SubscribeSpaceTraceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  bool include_historical = 3;
+  int32 max_history = 4;
+}

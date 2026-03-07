@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// HealthService provides a structured health report for the gateway.
+//
+// The native app polls this to show system status. Peer gateways
+// call it before attempting sync. Monitoring tools scrape it.
+service HealthService {
+  // Returns the overall health of the gateway and each subsystem.
+  rpc CheckHealth(CheckHealthRequest) returns (CheckHealthResponse);
+
+  // Returns detailed resource usage (spaces, budget, storage).
+  rpc GetResourceUsage(GetResourceUsageRequest) returns (GetResourceUsageResponse);
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_HEALTHY = 1;     // All systems nominal
+  HEALTH_STATUS_DEGRADED = 2;    // Functional but something is wrong
+  HEALTH_STATUS_UNHEALTHY = 3;   // Critical failure
+}
+
+// Each subsystem reports its own status.
+message SubsystemHealth {
+  string name = 1;
+  HealthStatus status = 2;
+  string message = 3;
+  // Latency of the last health check in ms.
+  int64 latency_ms = 4;
+  google.protobuf.Timestamp checked_at = 5;
+}
+
+message CheckHealthRequest {
+  // If true, force a fresh check instead of returning cached status.
+  bool force_refresh = 1;
+}
+
+message CheckHealthResponse {
+  HealthStatus overall = 1;
+  string gateway_version = 2;
+  string resource_id = 3;
+  google.protobuf.Timestamp uptime_since = 4;
+
+  // Individual subsystem reports.
+  SubsystemHealth database = 5;
+  SubsystemHealth event_bus = 6;
+  SubsystemHealth websocket_server = 7;
+
+  // Model provider health (one per registered provider).
+  repeated ModelProviderHealth model_providers = 8;
+
+  // Capability provider health.
+  repeated CapabilityProviderHealth capability_providers = 9;
+
+  google.protobuf.Timestamp checked_at = 10;
+  // Immutable gateway UUID for stable identity across restarts and peer sync.
+  string gateway_uuid = 11;
+}
+
+message ModelProviderHealth {
+  string provider_id = 1;
+  string provider_name = 2;
+  bool is_local = 3;
+  HealthStatus status = 4;
+  int64 latency_ms = 5;
+  int32 available_models = 6;
+}
+
+message CapabilityProviderHealth {
+  string provider_id = 1;
+  string capability_type = 2;
+  HealthStatus status = 3;
+  string message = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Resource usage
+// ---------------------------------------------------------------------------
+
+message GetResourceUsageRequest {}
+
+message GetResourceUsageResponse {
+  string resource_id = 1;
+
+  // Space limits
+  int32 active_spaces = 2;
+  int32 max_active_spaces = 3;
+  int32 spaces_created_this_period = 4;
+  int32 max_spaces_per_period = 5;
+
+  // Budget
+  double total_spent_usd = 6;
+  double soft_cap_usd = 7;
+  double hard_cap_usd = 8;
+
+  // Storage
+  int64 database_size_bytes = 9;
+  int64 experience_files_bytes = 10;
+  int64 skill_files_bytes = 11;
+
+  // Stuck work
+  int32 stuck_action_runs = 12;
+  int32 pending_feedback_items = 13;
+
+  google.protobuf.Timestamp computed_at = 14;
+}

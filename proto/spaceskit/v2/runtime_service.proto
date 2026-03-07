@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+service RuntimeService {
+  rpc StartRun(StartRunRequest) returns (StartRunResponse);
+  rpc GetRun(GetRunRequest) returns (GetRunResponse);
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  rpc ListRunSteps(ListRunStepsRequest) returns (ListRunStepsResponse);
+  rpc ListRunArtifacts(ListRunArtifactsRequest) returns (ListRunArtifactsResponse);
+  rpc ResolveRunApproval(ResolveRunApprovalRequest) returns (ResolveRunApprovalResponse);
+}
+
+message StartRunRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string input_text = 3;
+  string target_agent_id = 4;
+  string idempotency_key = 5;
+}
+
+message StartRunResponse {
+  string api_version = 1;
+  Run run = 2;
+}
+
+message GetRunRequest {
+  string api_version = 1;
+  string run_id = 2;
+}
+
+message GetRunResponse {
+  string api_version = 1;
+  Run run = 2;
+}
+
+message ListRunsRequest {
+  string api_version = 1;
+  string space_id = 2;
+  repeated RunStatus statuses = 3;
+  int32 limit = 4;
+}
+
+message ListRunsResponse {
+  string api_version = 1;
+  repeated Run runs = 2;
+}
+
+message ListRunStepsRequest {
+  string api_version = 1;
+  string run_id = 2;
+}
+
+message ListRunStepsResponse {
+  string api_version = 1;
+  repeated RunStep steps = 2;
+}
+
+message ListRunArtifactsRequest {
+  string api_version = 1;
+  string run_id = 2;
+}
+
+message ListRunArtifactsResponse {
+  string api_version = 1;
+  repeated Artifact artifacts = 2;
+}
+
+message ResolveRunApprovalRequest {
+  string api_version = 1;
+  string approval_request_id = 2;
+  ApprovalRequestStatus status = 3;
+  string resolution = 4;
+  string idempotency_key = 5;
+}
+
+message ResolveRunApprovalResponse {
+  string api_version = 1;
+  ApprovalRequestRecord approval = 2;
+}

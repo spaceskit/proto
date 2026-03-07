@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+service IntegrationService {
+  rpc ListIntegrationCatalog(ListIntegrationCatalogRequest) returns (ListIntegrationCatalogResponse);
+  rpc CreateIntegrationRequest(CreateIntegrationRequestRequest) returns (CreateIntegrationRequestResponse);
+  rpc ListIntegrationRequests(ListIntegrationRequestsRequest) returns (ListIntegrationRequestsResponse);
+}
+
+message ListIntegrationCatalogRequest {
+  string api_version = 1;
+  repeated IntegrationClass integration_classes = 2;
+}
+
+message ListIntegrationCatalogResponse {
+  string api_version = 1;
+  repeated IntegrationCatalogEntry entries = 2;
+}
+
+message CreateIntegrationRequestRequest {
+  string api_version = 1;
+  IntegrationClass integration_class = 2;
+  string requested_name = 3;
+  string use_case = 4;
+  string source_url = 5;
+  string notes = 6;
+  string idempotency_key = 7;
+}
+
+message CreateIntegrationRequestResponse {
+  string api_version = 1;
+  IntegrationRequest request = 2;
+}
+
+message ListIntegrationRequestsRequest {
+  string api_version = 1;
+  IntegrationClass integration_class = 2;
+  int32 limit = 3;
+}
+
+message ListIntegrationRequestsResponse {
+  string api_version = 1;
+  repeated IntegrationRequest requests = 2;
+}

@@ -1,0 +1,230 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service SchedulerService {
+  rpc CreateSchedulerJob(CreateSchedulerJobRequest) returns (CreateSchedulerJobResponse);
+  rpc GetSchedulerJob(GetSchedulerJobRequest) returns (GetSchedulerJobResponse);
+  rpc ListSchedulerJobs(ListSchedulerJobsRequest) returns (ListSchedulerJobsResponse);
+  rpc UpdateSchedulerJob(UpdateSchedulerJobRequest) returns (UpdateSchedulerJobResponse);
+  rpc DeleteSchedulerJob(DeleteSchedulerJobRequest) returns (DeleteSchedulerJobResponse);
+  rpc LinkSchedulerJobSpace(LinkSchedulerJobSpaceRequest) returns (LinkSchedulerJobSpaceResponse);
+  rpc UnlinkSchedulerJobSpace(UnlinkSchedulerJobSpaceRequest) returns (UnlinkSchedulerJobSpaceResponse);
+  rpc ListSchedulerJobRuns(ListSchedulerJobRunsRequest) returns (ListSchedulerJobRunsResponse);
+  rpc RunSchedulerJobNow(RunSchedulerJobNowRequest) returns (RunSchedulerJobNowResponse);
+}
+
+enum SchedulerJobStatus {
+  SCHEDULER_JOB_STATUS_UNSPECIFIED = 0;
+  SCHEDULER_JOB_STATUS_ACTIVE = 1;
+  SCHEDULER_JOB_STATUS_PAUSED = 2;
+  SCHEDULER_JOB_STATUS_INVALID = 3;
+}
+
+enum SchedulerRunStatus {
+  SCHEDULER_RUN_STATUS_UNSPECIFIED = 0;
+  SCHEDULER_RUN_STATUS_RUNNING = 1;
+  SCHEDULER_RUN_STATUS_COMPLETED = 2;
+  SCHEDULER_RUN_STATUS_FAILED = 3;
+  SCHEDULER_RUN_STATUS_SKIPPED = 4;
+}
+
+enum SchedulerRunTrigger {
+  SCHEDULER_RUN_TRIGGER_UNSPECIFIED = 0;
+  SCHEDULER_RUN_TRIGGER_SCHEDULED = 1;
+  SCHEDULER_RUN_TRIGGER_MANUAL = 2;
+}
+
+enum SchedulerScheduleKind {
+  SCHEDULER_SCHEDULE_KIND_UNSPECIFIED = 0;
+  SCHEDULER_SCHEDULE_KIND_HOURLY = 1;
+  SCHEDULER_SCHEDULE_KIND_DAILY = 2;
+  SCHEDULER_SCHEDULE_KIND_WEEKLY = 3;
+}
+
+enum SchedulerActionType {
+  SCHEDULER_ACTION_TYPE_UNSPECIFIED = 0;
+  SCHEDULER_ACTION_TYPE_SPACE_PROMPT = 1;
+}
+
+message SchedulerSchedulePreset {
+  SchedulerScheduleKind kind = 1;
+  int32 interval_hours = 2;
+  int32 minute = 3;
+  int32 hour = 4;
+  repeated int32 days_of_week = 5;
+}
+
+message SchedulerAction {
+  SchedulerActionType type = 1;
+  string prompt_text = 2;
+  string target_agent_id = 3;
+}
+
+message SchedulerLinkedSpace {
+  string space_id = 1;
+  string space_uid = 2;
+  string name = 3;
+  bool is_primary = 4;
+  google.protobuf.Timestamp linked_at = 5;
+}
+
+message SchedulerJob {
+  string job_id = 1;
+  string name = 2;
+  SchedulerJobStatus status = 3;
+  bool enabled = 4;
+  string cron_expression = 5;
+  SchedulerSchedulePreset schedule_preset = 6;
+  string timezone = 7;
+  SchedulerAction action = 8;
+  string primary_space_id = 9;
+  string invalid_reason = 10;
+  google.protobuf.Timestamp next_run_at = 11;
+  google.protobuf.Timestamp last_run_at = 12;
+  SchedulerRunStatus last_run_status = 13;
+  string last_error_code = 14;
+  string last_error_message = 15;
+  string created_by_principal_id = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+  repeated SchedulerLinkedSpace linked_spaces = 19;
+}
+
+message SchedulerJobRun {
+  string run_id = 1;
+  string job_id = 2;
+  SchedulerRunTrigger trigger = 3;
+  SchedulerRunStatus status = 4;
+  string command_id = 5;
+  google.protobuf.Timestamp scheduled_for = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp finished_at = 8;
+  string skip_reason = 9;
+  string error_code = 10;
+  string error_message = 11;
+  google.protobuf.Struct result = 12;
+}
+
+message CreateSchedulerJobRequest {
+  string api_version = 1;
+  string name = 2;
+  string timezone = 3;
+  SchedulerSchedulePreset schedule_preset = 4;
+  SchedulerAction action = 5;
+  string primary_space_id = 6;
+  repeated string related_space_ids = 7;
+  string idempotency_key = 8;
+}
+
+message CreateSchedulerJobResponse {
+  string api_version = 1;
+  SchedulerJob job = 2;
+}
+
+message GetSchedulerJobRequest {
+  string api_version = 1;
+  string job_id = 2;
+}
+
+message GetSchedulerJobResponse {
+  string api_version = 1;
+  SchedulerJob job = 2;
+}
+
+message ListSchedulerJobsRequest {
+  string api_version = 1;
+  repeated SchedulerJobStatus statuses = 2;
+  string gateway_id = 3;
+  int32 limit = 4;
+}
+
+message ListSchedulerJobsResponse {
+  string api_version = 1;
+  repeated SchedulerJob jobs = 2;
+}
+
+message UpdateSchedulerJobRequest {
+  string api_version = 1;
+  string job_id = 2;
+  optional string name = 3;
+  optional SchedulerJobStatus status = 4;
+  SchedulerSchedulePreset schedule_preset = 5;
+  SchedulerAction action = 6;
+  optional string timezone = 7;
+  optional string primary_space_id = 8;
+  repeated string related_space_ids = 9;
+  google.protobuf.FieldMask update_mask = 10;
+  string idempotency_key = 11;
+}
+
+message UpdateSchedulerJobResponse {
+  string api_version = 1;
+  SchedulerJob job = 2;
+}
+
+message DeleteSchedulerJobRequest {
+  string api_version = 1;
+  string job_id = 2;
+  string idempotency_key = 3;
+}
+
+message DeleteSchedulerJobResponse {
+  string api_version = 1;
+  string job_id = 2;
+  bool deleted = 3;
+}
+
+message LinkSchedulerJobSpaceRequest {
+  string api_version = 1;
+  string job_id = 2;
+  string space_id = 3;
+  string idempotency_key = 4;
+}
+
+message LinkSchedulerJobSpaceResponse {
+  string api_version = 1;
+  SchedulerJob job = 2;
+}
+
+message UnlinkSchedulerJobSpaceRequest {
+  string api_version = 1;
+  string job_id = 2;
+  string space_id = 3;
+  string idempotency_key = 4;
+}
+
+message UnlinkSchedulerJobSpaceResponse {
+  string api_version = 1;
+  SchedulerJob job = 2;
+}
+
+message ListSchedulerJobRunsRequest {
+  string api_version = 1;
+  string job_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListSchedulerJobRunsResponse {
+  string api_version = 1;
+  repeated SchedulerJobRun runs = 2;
+  int32 total = 3;
+  int32 next_offset = 4;
+}
+
+message RunSchedulerJobNowRequest {
+  string api_version = 1;
+  string job_id = 2;
+  string idempotency_key = 3;
+}
+
+message RunSchedulerJobNowResponse {
+  string api_version = 1;
+  SchedulerJobRun run = 2;
+  SchedulerJob job = 3;
+}

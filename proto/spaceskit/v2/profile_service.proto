@@ -1,0 +1,292 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/field_mask.proto";
+
+// ---------------------------------------------------------------------------
+// ProfileService — agent identity management
+//
+// Manages agent profiles (personality, skills, preferences, security defaults),
+// profile revisions (version history), and personality insights (experience-
+// driven profile evolution). Also manages moderator profiles.
+//
+// The growth loop:
+//   1. Agent participates in a space session
+//   2. Space produces an Experience with AgentObservations
+//   3. Gateway generates a PersonalityInsight proposing profile changes
+//   4. Human reviews the insight (accept / reject / edit)
+//   5. Accepted insight creates a new profile revision
+//   6. Agent's next space session uses the updated profile
+// ---------------------------------------------------------------------------
+
+service ProfileService {
+  // --- Agent profiles ---
+  rpc ListAgentProfiles(ListAgentProfilesRequest) returns (ListAgentProfilesResponse);
+  rpc GetAgentProfile(GetAgentProfileRequest) returns (GetAgentProfileResponse);
+  rpc CreateAgentProfile(CreateAgentProfileRequest) returns (CreateAgentProfileResponse);
+  rpc UpdateAgentProfile(UpdateAgentProfileRequest) returns (UpdateAgentProfileResponse);
+  rpc ArchiveAgentProfile(ArchiveAgentProfileRequest) returns (ArchiveAgentProfileResponse);
+  rpc RestoreAgentProfile(RestoreAgentProfileRequest) returns (RestoreAgentProfileResponse);
+
+  // --- Revisions ---
+  rpc ListProfileRevisions(ListProfileRevisionsRequest) returns (ListProfileRevisionsResponse);
+  rpc GetProfileRevision(GetProfileRevisionRequest) returns (GetProfileRevisionResponse);
+  rpc ActivateProfileRevision(ActivateProfileRevisionRequest) returns (ActivateProfileRevisionResponse);
+
+  // --- Personality insights (experience → profile evolution) ---
+  rpc ListInsights(ListInsightsRequest) returns (ListInsightsResponse);
+  rpc GetInsight(GetInsightRequest) returns (GetInsightResponse);
+  rpc ReviewInsight(ReviewInsightRequest) returns (ReviewInsightResponse);
+  rpc GenerateInsights(GenerateInsightsRequest) returns (GenerateInsightsResponse);
+
+  // --- Moderator profiles ---
+  rpc ListModeratorProfiles(ListModeratorProfilesRequest) returns (ListModeratorProfilesResponse);
+  rpc GetModeratorProfile(GetModeratorProfileRequest) returns (GetModeratorProfileResponse);
+  rpc CreateModeratorProfile(CreateModeratorProfileRequest) returns (CreateModeratorProfileResponse);
+  rpc UpdateModeratorProfile(UpdateModeratorProfileRequest) returns (UpdateModeratorProfileResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Agent profile requests/responses
+// ---------------------------------------------------------------------------
+
+message ProfileQuery {
+  bool include_archived = 1;
+  bool moderator_capable_only = 2;
+  repeated string tags = 3;          // Filter by skill/action tags
+  string provider_hint = 4;          // Filter by preferred provider
+}
+
+message ListAgentProfilesRequest {
+  string api_version = 1;
+  ProfileQuery query = 2;
+}
+
+message ListAgentProfilesResponse {
+  string api_version = 1;
+  repeated AgentProfile profiles = 2;
+}
+
+message GetAgentProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+}
+
+message GetAgentProfileResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+}
+
+message CreateAgentProfileRequest {
+  string api_version = 1;
+  AgentProfile profile = 2;
+  string idempotency_key = 3;
+}
+
+message CreateAgentProfileResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+}
+
+message UpdateAgentProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  // Fields to update.
+  optional string name = 3;
+  optional string description = 4;
+  optional string personality_prompt = 5;
+  repeated string default_skill_ids = 6;
+  repeated string default_action_ids = 7;
+  optional string provider_hint = 8;
+  optional string model_hint = 9;
+  optional bool can_moderate = 10;
+  optional bool is_default = 11;
+  AgentSecurityScope default_security_scope = 12;
+  // Reason for the update (becomes change_reason on the new revision).
+  optional string change_reason = 13;
+  string idempotency_key = 14;
+  // Additive multi-model config; legacy model_hint remains supported.
+  ModelConfig model_config = 15;
+  // Optional explicit patch paths (for example default_skill_ids, is_default).
+  google.protobuf.FieldMask update_mask = 16;
+}
+
+message UpdateAgentProfileResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+  // The new revision number created by this update.
+  int32 new_revision = 3;
+}
+
+message ArchiveAgentProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  string idempotency_key = 3;
+}
+
+message ArchiveAgentProfileResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+}
+
+message RestoreAgentProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  string idempotency_key = 3;
+}
+
+message RestoreAgentProfileResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Revision requests/responses
+// ---------------------------------------------------------------------------
+
+message ListProfileRevisionsRequest {
+  string api_version = 1;
+  string profile_id = 2;
+}
+
+message ListProfileRevisionsResponse {
+  string api_version = 1;
+  repeated AgentProfileRevision revisions = 2;
+}
+
+message GetProfileRevisionRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  int32 revision = 3;
+}
+
+message GetProfileRevisionResponse {
+  string api_version = 1;
+  AgentProfileRevision revision = 2;
+}
+
+message ActivateProfileRevisionRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  int32 revision = 3;
+  string idempotency_key = 4;
+}
+
+message ActivateProfileRevisionResponse {
+  string api_version = 1;
+  AgentProfile profile = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Personality insight requests/responses
+// ---------------------------------------------------------------------------
+
+message ListInsightsRequest {
+  string api_version = 1;
+  // Filter by profile, experience, or status.
+  string profile_id = 2;
+  string experience_id = 3;
+  InsightStatus status_filter = 4;
+}
+
+message ListInsightsResponse {
+  string api_version = 1;
+  repeated PersonalityInsight insights = 2;
+}
+
+message GetInsightRequest {
+  string api_version = 1;
+  string insight_id = 2;
+}
+
+message GetInsightResponse {
+  string api_version = 1;
+  PersonalityInsight insight = 2;
+}
+
+message ReviewInsightRequest {
+  string api_version = 1;
+  string insight_id = 2;
+  InsightStatus decision = 3;        // ACCEPTED or REJECTED
+  // If the human edited the proposal before accepting.
+  string edited_prompt_delta = 4;
+  string human_note = 5;
+  string idempotency_key = 6;
+}
+
+message ReviewInsightResponse {
+  string api_version = 1;
+  PersonalityInsight insight = 2;
+  // If accepted, the new profile revision that was created.
+  AgentProfileRevision new_revision = 3;
+}
+
+// Generate insights from an experience. Typically called automatically
+// when an experience is finalized, but can be triggered manually.
+message GenerateInsightsRequest {
+  string api_version = 1;
+  string experience_id = 2;
+  // Optionally limit to specific profiles (empty = all agents in experience).
+  repeated string profile_ids = 3;
+}
+
+message GenerateInsightsResponse {
+  string api_version = 1;
+  repeated PersonalityInsight insights = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Moderator profile requests/responses
+// ---------------------------------------------------------------------------
+
+message ListModeratorProfilesRequest {
+  string api_version = 1;
+  ProfileQuery query = 2;
+}
+
+message ListModeratorProfilesResponse {
+  string api_version = 1;
+  repeated ModeratorProfile profiles = 2;
+}
+
+message GetModeratorProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+}
+
+message GetModeratorProfileResponse {
+  string api_version = 1;
+  ModeratorProfile profile = 2;
+}
+
+message CreateModeratorProfileRequest {
+  string api_version = 1;
+  ModeratorProfile profile = 2;
+  string idempotency_key = 3;
+}
+
+message CreateModeratorProfileResponse {
+  string api_version = 1;
+  ModeratorProfile profile = 2;
+}
+
+message UpdateModeratorProfileRequest {
+  string api_version = 1;
+  string profile_id = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional string moderation_prompt = 5;
+  repeated string default_skill_ids = 6;
+  ModeratorPolicy policy = 7;
+  optional bool is_default = 8;
+  string idempotency_key = 9;
+  // Optional explicit patch paths (for example default_skill_ids, is_default).
+  google.protobuf.FieldMask update_mask = 10;
+}
+
+message UpdateModeratorProfileResponse {
+  string api_version = 1;
+  ModeratorProfile profile = 2;
+}

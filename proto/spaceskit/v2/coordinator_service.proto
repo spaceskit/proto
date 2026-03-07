@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service CoordinatorService {
+  // --- Turn orchestration ---
+  rpc SubmitSpaceInput(SubmitSpaceInputRequest) returns (SubmitSpaceInputResponse);
+  rpc CallAgent(CallAgentRequest) returns (CallAgentResponse);
+  rpc GetAgentCallHandle(GetAgentCallHandleRequest) returns (GetAgentCallHandleResponse);
+  rpc ListAgentCallHandles(ListAgentCallHandlesRequest) returns (ListAgentCallHandlesResponse);
+
+  // --- Human-in-the-loop feedback ---
+  rpc ListPendingFeedback(ListPendingFeedbackRequest) returns (ListPendingFeedbackResponse);
+  rpc GetFeedbackRequest(GetFeedbackRequestReq) returns (GetFeedbackRequestResp);
+  rpc ResolveFeedback(ResolveFeedbackRequest) returns (ResolveFeedbackResponse);
+
+  // --- Intent-level orchestrator commands ---
+  rpc SubmitOrchestratorCommand(SubmitOrchestratorCommandRequest) returns (SubmitOrchestratorCommandResponse);
+  rpc GetOrchestratorCommand(GetOrchestratorCommandRequest) returns (GetOrchestratorCommandResponse);
+}
+
+message SubmitSpaceInputRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string text = 3;
+  string source = 4;
+  string idempotency_key = 5;
+}
+
+message SubmitSpaceInputResponse {
+  string api_version = 1;
+  string space_id = 2;
+  string turn_id = 3;
+  string output_text = 4;
+}
+
+message AgentCallRequest {
+  string space_id = 1;
+  string source_agent_id = 2;
+  string target_agent_id = 3;
+  string payload_text = 4;
+  AgentCallMode mode = 5;
+  string lineage_id = 6;
+  int32 hop_count = 7;
+  int32 timeout_ms = 8;
+}
+
+message AgentCallResponse {
+  string api_version = 1;
+  AgentCallHandle handle = 2;
+  string result_text = 3;
+}
+
+message CallAgentRequest {
+  string api_version = 1;
+  AgentCallRequest request = 2;
+  string idempotency_key = 3;
+}
+
+message CallAgentResponse {
+  string api_version = 1;
+  AgentCallResponse response = 2;
+}
+
+message GetAgentCallHandleRequest {
+  string api_version = 1;
+  string call_id = 2;
+}
+
+message GetAgentCallHandleResponse {
+  string api_version = 1;
+  AgentCallHandle handle = 2;
+}
+
+message ListAgentCallHandlesRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string lineage_id = 3;
+  int32 limit = 4;
+}
+
+message ListAgentCallHandlesResponse {
+  string api_version = 1;
+  repeated AgentCallHandle handles = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Feedback — human-in-the-loop protocol
+// ---------------------------------------------------------------------------
+
+message ListPendingFeedbackRequest {
+  string api_version = 1;
+  string space_id = 2;
+  // Optionally filter by category.
+  FeedbackCategory category_filter = 3;
+  int32 limit = 4;
+}
+
+message ListPendingFeedbackResponse {
+  string api_version = 1;
+  repeated FeedbackRequest requests = 2;
+}
+
+message GetFeedbackRequestReq {
+  string api_version = 1;
+  string feedback_id = 2;
+}
+
+message GetFeedbackRequestResp {
+  string api_version = 1;
+  FeedbackRequest request = 2;
+}
+
+message ResolveFeedbackRequest {
+  string api_version = 1;
+  string feedback_id = 2;
+  FeedbackResponse response = 3;
+  string idempotency_key = 4;
+}
+
+message ResolveFeedbackResponse {
+  string api_version = 1;
+  FeedbackRequest request = 2;
+}
+
+enum OrchestratorCommandStatus {
+  ORCHESTRATOR_COMMAND_STATUS_UNSPECIFIED = 0;
+  ORCHESTRATOR_COMMAND_STATUS_ACCEPTED = 1;
+  ORCHESTRATOR_COMMAND_STATUS_RUNNING = 2;
+  ORCHESTRATOR_COMMAND_STATUS_COMPLETED = 3;
+  ORCHESTRATOR_COMMAND_STATUS_FAILED = 4;
+}
+
+message OrchestratorCommandEvent {
+  OrchestratorCommandStatus status = 1;
+  google.protobuf.Struct event = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message OrchestratorCommandError {
+  string code = 1;
+  string message = 2;
+}
+
+message OrchestratorCommand {
+  string command_id = 1;
+  string correlation_id = 2;
+  string api_version = 3;
+  string command_type = 4;
+  string target_space_id = 5;
+  string target_agent_id = 6;
+  OrchestratorCommandStatus status = 7;
+  google.protobuf.Struct result = 8;
+  OrchestratorCommandError error = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  repeated OrchestratorCommandEvent events = 12;
+}
+
+message OrchestratorSummaryParticipant {
+  string agent_id = 1;
+  int32 turn_order = 2;
+  bool is_primary = 3;
+  string status = 4; // pending | completed | failed
+  int32 prompt_tokens = 5;
+  int32 completion_tokens = 6;
+  string final_message = 7;
+  string error = 8;
+}
+
+message OrchestratorSummaryHighlight {
+  string agent_id = 1;
+  string event_type = 2; // text_delta | turn_completed | error | feedback_requested
+  string text = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message OrchestratorSummaryArtifact {
+  string summary_id = 1;
+  string version = 2;
+  string space_id = 3;
+  string turn_id = 4;
+  string turn_model = 5;
+  google.protobuf.Timestamp generated_at = 6;
+  string status = 7; // completed | degraded
+  string failure_reason = 8;
+  repeated OrchestratorSummaryParticipant participants = 9;
+  repeated OrchestratorSummaryHighlight highlights = 10;
+  string final_summary_text = 11;
+}
+
+message SubmitOrchestratorCommandRequest {
+  string api_version = 1;
+  string correlation_id = 2;
+  string idempotency_key = 3;
+  string command_type = 4;
+  string target_space_id = 5;
+  string target_agent_id = 6;
+  google.protobuf.Struct payload = 7;
+}
+
+message SubmitOrchestratorCommandResponse {
+  string api_version = 1;
+  OrchestratorCommand command = 2;
+}
+
+message GetOrchestratorCommandRequest {
+  string api_version = 1;
+  string command_id = 2;
+}
+
+message GetOrchestratorCommandResponse {
+  string api_version = 1;
+  OrchestratorCommand command = 2;
+}

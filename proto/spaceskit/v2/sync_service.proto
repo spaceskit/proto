@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// SyncService enables gateway-to-gateway resource exchange.
+//
+// Pull model: the requesting gateway asks for resources by type,
+// tags, or specific IDs. The responding gateway applies its own
+// security policy to decide what to share.
+//
+// This is NOT full replication. It's targeted exchange of skills,
+// actions, experiences, and profiles between cooperating gateways.
+service SyncService {
+  // Announce this gateway's identity and available resources.
+  rpc Announce(AnnounceRequest) returns (AnnounceResponse);
+
+  // Query what resources a peer gateway has available.
+  rpc QueryResources(QueryResourcesRequest) returns (QueryResourcesResponse);
+
+  // Pull specific resources from a peer gateway.
+  rpc PullResources(PullResourcesRequest) returns (PullResourcesResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Announce — discovery
+// ---------------------------------------------------------------------------
+
+message AnnounceRequest {
+  string resource_id = 1;
+  string gateway_version = 2;
+  // Number of available resources by type.
+  int32 skill_count = 3;
+  int32 action_count = 4;
+  int32 experience_count = 5;
+  int32 profile_count = 6;
+  string peer_id = 7;
+  string endpoint_url = 8;
+  string auth_secret_hash = 9;
+  string api_version = 10;
+}
+
+message AnnounceResponse {
+  string resource_id = 1;
+  string gateway_version = 2;
+  // Whether this gateway accepts sync requests.
+  bool sync_enabled = 3;
+  string peer_id = 4;
+  google.protobuf.Timestamp announced_at = 5;
+  string api_version = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Query — what does the peer have?
+// ---------------------------------------------------------------------------
+
+message QueryResourcesRequest {
+  // Filter by type.
+  repeated SyncResourceType types = 1;
+  // Filter by tags (OR logic across types).
+  repeated string tags = 2;
+  // Only return resources updated after this timestamp.
+  google.protobuf.Timestamp updated_after = 3;
+  int32 limit = 4;
+  string cursor = 5;
+  string peer_id = 6;
+  string resource_id = 7;
+  string api_version = 8;
+}
+
+message QueryResourcesResponse {
+  repeated SyncResourceRef resources = 1;
+  string next_cursor = 2;
+  string api_version = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Pull — give me these specific resources
+// ---------------------------------------------------------------------------
+
+message PullResourcesRequest {
+  // Specific resource refs to pull (from a prior QueryResources call).
+  repeated SyncResourceRef refs = 1;
+  string idempotency_key = 2;
+  string peer_id = 3;
+  string api_version = 4;
+}
+
+message PullResourcesResponse {
+  repeated SyncResourcePayload resources = 1;
+  // Resources that were denied by the peer's security policy.
+  repeated SyncResourceDenied denied = 2;
+  int32 applied_count = 3;
+  int32 skipped_count = 4;
+  repeated SyncProvenance provenance = 5;
+  string api_version = 6;
+}
+
+message SyncResourceDenied {
+  SyncResourceRef ref = 1;
+  string reason = 2;
+}
+
+message SyncProvenance {
+  string peer_id = 1;
+  SyncResourceRef ref = 2;
+  string action = 3;
+  string status = 4;
+  string reason = 5;
+  google.protobuf.Timestamp pulled_at = 6;
+}

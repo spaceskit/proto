@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+// SkillService manages declarative skills and executable actions.
+//
+// Skills are .md files that shape agent behavior — domain knowledge,
+// guardrails, examples. They get injected into agent context.
+//
+// Actions are executable procedures with ordered steps (scripts,
+// prompts, capability invocations). Think runbooks with permissions.
+service SkillService {
+  // --- Skills (declarative) ---
+
+  rpc ListSkills(ListSkillsRequest) returns (ListSkillsResponse);
+  rpc GetSkill(GetSkillRequest) returns (GetSkillResponse);
+  rpc RegisterSkill(RegisterSkillRequest) returns (RegisterSkillResponse);
+  rpc RemoveSkill(RemoveSkillRequest) returns (RemoveSkillResponse);
+
+  // --- Actions (executable) ---
+
+  rpc ListActions(ListActionsRequest) returns (ListActionsResponse);
+  rpc GetAction(GetActionRequest) returns (GetActionResponse);
+  rpc RegisterAction(RegisterActionRequest) returns (RegisterActionResponse);
+  rpc RemoveAction(RemoveActionRequest) returns (RemoveActionResponse);
+
+  // Execute an action in the context of a space.
+  rpc RunAction(RunActionRequest) returns (RunActionResponse);
+  rpc GetActionRun(GetActionRunRequest) returns (GetActionRunResponse);
+  rpc CancelActionRun(CancelActionRunRequest) returns (CancelActionRunResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Skill RPCs
+// ---------------------------------------------------------------------------
+
+message ListSkillsRequest {
+  // Filter by tags (AND logic).
+  repeated string tags = 1;
+  // Filter to skills scoped to a specific agent.
+  string agent_id = 2;
+  // Filter to skills scoped to a specific template.
+  string template_id = 3;
+  int32 limit = 4;
+}
+
+message ListSkillsResponse {
+  repeated Skill skills = 1;
+}
+
+message GetSkillRequest {
+  string skill_id = 1;
+}
+
+message GetSkillResponse {
+  Skill skill = 1;
+  // The full markdown content of the skill file.
+  string content = 2;
+}
+
+message RegisterSkillRequest {
+  // Path to the .md file. The gateway reads metadata from frontmatter.
+  string source_path = 1;
+  // Optional overrides (if not present in frontmatter).
+  string name = 2;
+  repeated string tags = 3;
+  repeated string scoped_agent_ids = 4;
+}
+
+message RegisterSkillResponse {
+  Skill skill = 1;
+}
+
+message RemoveSkillRequest {
+  string skill_id = 1;
+}
+
+message RemoveSkillResponse {
+  Ack ack = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Action RPCs
+// ---------------------------------------------------------------------------
+
+message ListActionsRequest {
+  repeated string tags = 1;
+  // Filter to actions requiring specific capabilities.
+  repeated string required_capabilities = 2;
+  int32 limit = 3;
+}
+
+message ListActionsResponse {
+  repeated Action actions = 1;
+}
+
+message GetActionRequest {
+  string action_id = 1;
+}
+
+message GetActionResponse {
+  Action action = 1;
+  // The full markdown content of the action file.
+  string content = 2;
+}
+
+message RegisterActionRequest {
+  // Path to the .md file with action definition and steps.
+  string source_path = 1;
+  string name = 2;
+  repeated string tags = 3;
+}
+
+message RegisterActionResponse {
+  Action action = 1;
+}
+
+message RemoveActionRequest {
+  string action_id = 1;
+}
+
+message RemoveActionResponse {
+  Ack ack = 1;
+}
+
+message RunActionRequest {
+  string action_id = 1;
+  string space_id = 2;
+  // Agent to execute the action. If empty, the space moderator runs it.
+  string agent_id = 3;
+  // Runtime arguments passed to the action steps.
+  map<string, string> args = 4;
+  string idempotency_key = 5;
+}
+
+message RunActionResponse {
+  ActionRun run = 1;
+}
+
+message GetActionRunRequest {
+  string run_id = 1;
+}
+
+message GetActionRunResponse {
+  ActionRun run = 1;
+}
+
+message CancelActionRunRequest {
+  string run_id = 1;
+  string reason = 2;
+}
+
+message CancelActionRunResponse {
+  ActionRun run = 1;
+}
