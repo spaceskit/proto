@@ -40,6 +40,7 @@ message SpeechAudioChunk {
   double audio_duration_seconds = 8;
   int32 tts_chars = 9;
   double tts_seconds = 10;
+  SpeechEngineMetrics engine_metrics = 11;
 }
 
 message SpeechTranscriptSegment {
@@ -69,6 +70,8 @@ message SpeechSessionStart {
   bool allow_byok_fallback = 14;
   bool allow_local_fallback = 15;
   bool allow_apple_speech_fallback = 16;
+  SpeechRoutePreferences stt_preferences = 17;
+  SpeechRoutePreferences tts_preferences = 18;
 }
 
 message SpeechSessionControl {
@@ -80,6 +83,57 @@ message SpeechUsageMetrics {
   double stt_seconds = 1;
   int32 tts_chars = 2;
   double tts_seconds = 3;
+}
+
+message SpeechEngineMetrics {
+  double vad_detection_ms = 1;
+  double stt_transcription_ms = 2;
+  double tts_first_audio_ms = 3;
+  double tts_full_synthesis_ms = 4;
+}
+
+message SpeechRoutePreferences {
+  VoiceChannel channel = 1;
+  VoiceProviderSource preferred_source = 2;
+  string preferred_provider_id = 3;
+  string byok_provider_id = 4;
+  string local_model_provider_id = 5;
+  string apple_speech_provider_id = 6;
+  bool allow_byok_fallback = 7;
+  bool allow_local_fallback = 8;
+  bool allow_apple_speech_fallback = 9;
+}
+
+message VoiceRoute {
+  VoiceChannel channel = 1;
+  VoiceProviderSource source = 2;
+  string provider_id = 3;
+}
+
+message VoiceProviderConfig {
+  string provider_id = 1;
+  VoiceChannel channel = 2;
+  VoiceProviderSource source = 3;
+  int32 priority = 4;
+  VoiceProviderHealthStatus health_status = 5;
+  string cost_profile = 6;
+}
+
+message VoiceLockDecision {
+  VoiceChannel channel = 1;
+  VoiceProviderSource source = 2;
+  bool allowed = 3;
+  string reason = 4;
+  google.protobuf.Timestamp retry_at = 5;
+  string fallback_hint = 6;
+}
+
+message VoiceFallbackEvent {
+  VoiceChannel channel = 1;
+  VoiceRoute from_route = 2;
+  VoiceRoute to_route = 3;
+  VoiceFallbackReason reason = 4;
+  string detail = 5;
 }
 
 message StreamSpeechSessionRequest {
@@ -108,6 +162,12 @@ message SpeechSessionEvent {
   VoiceFallbackReason fallback_reason = 14;
   SpeechUsageMetrics usage = 15;
   string lock_reason = 16;
+  VoiceRoute stt_route = 17;
+  VoiceRoute tts_route = 18;
+  VoiceLockDecision lock_decision = 19;
+  VoiceFallbackEvent fallback_event = 20;
+  repeated VoiceProviderConfig provider_configs = 21;
+  SpeechEngineMetrics engine_metrics = 22;
 }
 
 message StreamSpeechSessionResponse {

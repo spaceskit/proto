@@ -37,6 +37,8 @@ enum SpaceStatus {
   SPACE_STATUS_PAUSED = 3;
   SPACE_STATUS_COMPLETED = 4;
   SPACE_STATUS_FAILED = 5;
+  SPACE_STATUS_ARCHIVED = 6;
+  SPACE_STATUS_DELETED = 7;
 }
 
 enum TurnModelStrategy {
@@ -48,6 +50,34 @@ enum TurnModelStrategy {
   TURN_MODEL_STRATEGY_PARALLEL_RACE = 5;
   TURN_MODEL_STRATEGY_DEBATE_SYNTHESIS = 6;
   TURN_MODEL_STRATEGY_ADAPTIVE_AUTO = 7;
+}
+
+enum ConversationTopology {
+  CONVERSATION_TOPOLOGY_UNSPECIFIED = 0;
+  CONVERSATION_TOPOLOGY_DIRECT = 1;
+  CONVERSATION_TOPOLOGY_SHARED_TEAM_CHAT = 2;
+  CONVERSATION_TOPOLOGY_BROADCAST_TEAM = 3;
+}
+
+enum TurnExecutionMode {
+  TURN_EXECUTION_MODE_UNSPECIFIED = 0;
+  TURN_EXECUTION_MODE_ASK = 1;
+  TURN_EXECUTION_MODE_PLAN = 2;
+  TURN_EXECUTION_MODE_EXECUTE = 3;
+}
+
+enum ReasoningEffort {
+  REASONING_EFFORT_UNSPECIFIED = 0;
+  REASONING_EFFORT_LOW = 1;
+  REASONING_EFFORT_MEDIUM = 2;
+  REASONING_EFFORT_HIGH = 3;
+}
+
+enum TranscriptVisibility {
+  TRANSCRIPT_VISIBILITY_UNSPECIFIED = 0;
+  TRANSCRIPT_VISIBILITY_VISIBLE = 1;
+  TRANSCRIPT_VISIBILITY_ACTIVITY_ONLY = 2;
+  TRANSCRIPT_VISIBILITY_SUMMARY = 3;
 }
 
 enum VoiceIntentType {
@@ -71,6 +101,20 @@ enum VoiceFallbackReason {
   VOICE_FALLBACK_REASON_MANUAL_OVERRIDE = 2;
   VOICE_FALLBACK_REASON_QUOTA_FALLBACK = 3;
   VOICE_FALLBACK_REASON_LOCAL_FORCED = 4;
+}
+
+enum VoiceChannel {
+  VOICE_CHANNEL_UNSPECIFIED = 0;
+  VOICE_CHANNEL_STT = 1;
+  VOICE_CHANNEL_TTS = 2;
+}
+
+enum VoiceProviderHealthStatus {
+  VOICE_PROVIDER_HEALTH_STATUS_UNSPECIFIED = 0;
+  VOICE_PROVIDER_HEALTH_STATUS_UNKNOWN = 1;
+  VOICE_PROVIDER_HEALTH_STATUS_HEALTHY = 2;
+  VOICE_PROVIDER_HEALTH_STATUS_DEGRADED = 3;
+  VOICE_PROVIDER_HEALTH_STATUS_UNAVAILABLE = 4;
 }
 
 enum CoordinatorRole {
@@ -101,6 +145,15 @@ enum CapabilityApprovalStatus {
   CAPABILITY_APPROVAL_STATUS_APPROVED = 2;
   CAPABILITY_APPROVAL_STATUS_REJECTED = 3;
   CAPABILITY_APPROVAL_STATUS_DEPRECATED = 4;
+}
+
+enum AppDestination {
+  APP_DESTINATION_UNSPECIFIED = 0;
+  APP_DESTINATION_OVERVIEW = 1;
+  APP_DESTINATION_SPACE = 2;
+  APP_DESTINATION_GATEWAY = 3;
+  APP_DESTINATION_SCHEDULER = 4;
+  APP_DESTINATION_SETTINGS = 5;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +253,14 @@ message Ack {
   string message = 3;
 }
 
+message AppNavigateEvent {
+  AppDestination destination = 1;
+  string gateway_id = 2;
+  string space_id = 3;
+  string job_id = 4;
+  string prompt_text = 5;
+}
+
 message ErrorInfo {
   string code = 1;
   string message = 2;
@@ -247,12 +308,45 @@ message SpaceWorkspaceBinding {
   google.protobuf.Timestamp updated_at = 12;
   bool git_repo_detected = 13;
   SpaceWorkspaceMetadataStatus metadata_status = 14;
+  string artifacts_path = 15;
+  repeated string discovered_project_files = 16;
 }
 
 message VoicePolicy {
   bool default_to_active_space = 1;
   double command_confidence_threshold = 2;
   double clarification_confidence_floor = 3;
+}
+
+enum ThinkingCapturePolicy {
+  THINKING_CAPTURE_POLICY_UNSPECIFIED = 0;
+  THINKING_CAPTURE_POLICY_OFF = 1;
+  THINKING_CAPTURE_POLICY_SUMMARY = 2;
+  THINKING_CAPTURE_POLICY_FULL = 3;
+}
+
+enum SpaceExperienceCaptureMode {
+  SPACE_EXPERIENCE_CAPTURE_MODE_UNSPECIFIED = 0;
+  SPACE_EXPERIENCE_CAPTURE_MODE_INHERIT = 1;
+  SPACE_EXPERIENCE_CAPTURE_MODE_ENABLED = 2;
+  SPACE_EXPERIENCE_CAPTURE_MODE_DISABLED = 3;
+}
+
+enum SpacePrivacyMode {
+  SPACE_PRIVACY_MODE_UNSPECIFIED = 0;
+  SPACE_PRIVACY_MODE_STANDARD = 1;
+  SPACE_PRIVACY_MODE_INCOGNITO_SESSION = 2;
+}
+
+message SpaceMemoryPolicy {
+  SpaceExperienceCaptureMode experience_capture = 1;
+  SpacePrivacyMode privacy_mode = 2;
+}
+
+message GatewayMemoryDefaults {
+  SpaceExperienceCaptureMode default_experience_capture = 1;
+  SpacePrivacyMode default_space_privacy_mode = 2;
+  google.protobuf.Timestamp updated_at = 3;
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +387,13 @@ message SpaceState {
   string space_uid = 21;
   // First-class per-space workspace binding.
   SpaceWorkspaceBinding workspace = 22;
+  // Per-space provider-thinking persistence policy.
+  ThinkingCapturePolicy thinking_capture_policy = 23;
+  ConversationTopology conversation_topology = 24;
+  string prompt_pack_id = 25;
+  SpaceMemoryPolicy memory_policy = 26;
+  google.protobuf.Timestamp archived_at = 27;
+  google.protobuf.Timestamp deleted_at = 28;
 }
 
 message SpaceMcpEndpointConfig {
@@ -616,6 +717,27 @@ message ArtifactProvenance {
   bool human_reviewed = 6;
   string reviewed_by = 7;
   google.protobuf.Timestamp reviewed_at = 8;
+}
+
+message ContentPart {
+  string type = 1;               // "text", "data", "file"
+  string mime_type = 2;
+  string text = 3;
+  string data = 4;
+  string uri = 5;
+  string title = 6;
+  string preview_text = 7;
+  google.protobuf.Struct metadata = 8;
+}
+
+message ContentEnvelope {
+  int32 schema_version = 1;
+  string kind = 2;               // "rich_content"
+  string primary_mime_type = 3;
+  string preview_text = 4;
+  bool supports_inline = 5;
+  repeated ContentPart parts = 6;
+  google.protobuf.Struct metadata = 7;
 }
 
 message Artifact {
@@ -1140,20 +1262,6 @@ message IntegrationCatalogEntry {
   string error_message = 15;
 }
 
-message IntegrationRequest {
-  string integration_request_id = 1;
-  IntegrationClass integration_class = 2;
-  string requested_name = 3;
-  string use_case = 4;
-  string source_url = 5;
-  string notes = 6;
-  string principal_id = 7;
-  string device_id = 8;
-  string status = 9;
-  google.protobuf.Timestamp created_at = 10;
-  google.protobuf.Timestamp updated_at = 11;
-}
-
 // ---------------------------------------------------------------------------
 // Agent assignment — how agents are enrolled in spaces
 // ---------------------------------------------------------------------------
@@ -1171,6 +1279,8 @@ message SpaceAgentAssignment {
   // Whether this is the primary agent (for primary_only strategy).
   bool is_primary = 7;
   google.protobuf.Timestamp assigned_at = 8;
+  string spawn_context = 9;
+  google.protobuf.Struct context_overrides = 10;
 }
 
 // ---------------------------------------------------------------------------

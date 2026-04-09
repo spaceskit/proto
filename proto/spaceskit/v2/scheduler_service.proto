@@ -51,6 +51,25 @@ enum SchedulerActionType {
   SCHEDULER_ACTION_TYPE_SPACE_PROMPT = 1;
 }
 
+enum SchedulerExecutionTargetMode {
+  SCHEDULER_EXECUTION_TARGET_MODE_UNSPECIFIED = 0;
+  SCHEDULER_EXECUTION_TARGET_MODE_EXISTING_SPACE = 1;
+  SCHEDULER_EXECUTION_TARGET_MODE_NEW_SPACE = 2;
+}
+
+enum SchedulerCalendarSyncStatus {
+  SCHEDULER_CALENDAR_SYNC_STATUS_UNSPECIFIED = 0;
+  SCHEDULER_CALENDAR_SYNC_STATUS_PENDING = 1;
+  SCHEDULER_CALENDAR_SYNC_STATUS_SYNCED = 2;
+  SCHEDULER_CALENDAR_SYNC_STATUS_ERROR = 3;
+}
+
+enum SchedulerCalendarDriftStatus {
+  SCHEDULER_CALENDAR_DRIFT_STATUS_UNSPECIFIED = 0;
+  SCHEDULER_CALENDAR_DRIFT_STATUS_NONE = 1;
+  SCHEDULER_CALENDAR_DRIFT_STATUS_DRIFTED = 2;
+}
+
 message SchedulerSchedulePreset {
   SchedulerScheduleKind kind = 1;
   int32 interval_hours = 2;
@@ -63,6 +82,20 @@ message SchedulerAction {
   SchedulerActionType type = 1;
   string prompt_text = 2;
   string target_agent_id = 3;
+}
+
+message SchedulerExecutionTarget {
+  SchedulerExecutionTargetMode mode = 1;
+}
+
+message SchedulerCalendarBinding {
+  string provider_id = 1;
+  string calendar_id = 2;
+  string event_id = 3;
+  SchedulerCalendarSyncStatus sync_status = 4;
+  SchedulerCalendarDriftStatus drift_status = 5;
+  string drift_message = 6;
+  google.protobuf.Timestamp last_synced_at = 7;
 }
 
 message SchedulerLinkedSpace {
@@ -93,6 +126,8 @@ message SchedulerJob {
   google.protobuf.Timestamp created_at = 17;
   google.protobuf.Timestamp updated_at = 18;
   repeated SchedulerLinkedSpace linked_spaces = 19;
+  SchedulerExecutionTarget execution_target = 20;
+  SchedulerCalendarBinding calendar_binding = 21;
 }
 
 message SchedulerJobRun {
@@ -119,6 +154,8 @@ message CreateSchedulerJobRequest {
   string primary_space_id = 6;
   repeated string related_space_ids = 7;
   string idempotency_key = 8;
+  SchedulerExecutionTarget execution_target = 9;
+  SchedulerCalendarBinding calendar_binding = 10;
 }
 
 message CreateSchedulerJobResponse {
@@ -160,6 +197,8 @@ message UpdateSchedulerJobRequest {
   repeated string related_space_ids = 9;
   google.protobuf.FieldMask update_mask = 10;
   string idempotency_key = 11;
+  SchedulerExecutionTarget execution_target = 12;
+  SchedulerCalendarBinding calendar_binding = 13;
 }
 
 message UpdateSchedulerJobResponse {

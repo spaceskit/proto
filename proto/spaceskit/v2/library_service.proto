@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+service LibraryService {
+  rpc ListLibraryEntries(ListLibraryEntriesRequest) returns (ListLibraryEntriesResponse);
+  rpc GetLibraryEntry(GetLibraryEntryRequest) returns (GetLibraryEntryResponse);
+  rpc SaveLibrarySkill(SaveLibrarySkillRequest) returns (SaveLibrarySkillResponse);
+  rpc ImportLibraryEntry(ImportLibraryEntryRequest) returns (ImportLibraryEntryResponse);
+  rpc ArchiveLibraryEntry(ArchiveLibraryEntryRequest) returns (ArchiveLibraryEntryResponse);
+  rpc SetLibraryEntryEnabled(SetLibraryEntryEnabledRequest) returns (SetLibraryEntryEnabledResponse);
+  rpc DeleteLibraryEntry(DeleteLibraryEntryRequest) returns (DeleteLibraryEntryResponse);
+  rpc ScanLibraryEntries(ScanLibraryEntriesRequest) returns (ScanLibraryEntriesResponse);
+  rpc ListSkillDrafts(ListSkillDraftsRequest) returns (ListSkillDraftsResponse);
+  rpc GetSkillDraft(GetSkillDraftRequest) returns (GetSkillDraftResponse);
+  rpc CreateSkillDraft(CreateSkillDraftRequest) returns (CreateSkillDraftResponse);
+  rpc DeleteSkillDraft(DeleteSkillDraftRequest) returns (DeleteSkillDraftResponse);
+}
+
+enum LibrarySourceKind {
+  LIBRARY_SOURCE_KIND_UNSPECIFIED = 0;
+  LIBRARY_SOURCE_KIND_INSTALLED = 1;
+  LIBRARY_SOURCE_KIND_SCANNED = 2;
+  LIBRARY_SOURCE_KIND_VERIFIED = 3;
+  LIBRARY_SOURCE_KIND_SYSTEM = 4;
+}
+
+enum LibraryEntryStatus {
+  LIBRARY_ENTRY_STATUS_UNSPECIFIED = 0;
+  LIBRARY_ENTRY_STATUS_ENABLED = 1;
+  LIBRARY_ENTRY_STATUS_DISABLED = 2;
+  LIBRARY_ENTRY_STATUS_ARCHIVED = 3;
+}
+
+enum LibraryEntryFilterStatus {
+  LIBRARY_ENTRY_FILTER_STATUS_UNSPECIFIED = 0;
+  LIBRARY_ENTRY_FILTER_STATUS_ENABLED = 1;
+  LIBRARY_ENTRY_FILTER_STATUS_DISABLED = 2;
+  LIBRARY_ENTRY_FILTER_STATUS_ARCHIVED = 3;
+  LIBRARY_ENTRY_FILTER_STATUS_ALL = 4;
+}
+
+message LibraryEntry {
+  string entry_id = 1;
+  optional string skill_id = 2;
+  string name = 3;
+  optional string description = 4;
+  optional string content_markdown = 5;
+  LibrarySourceKind source_kind = 6;
+  optional string source_ref = 7;
+  google.protobuf.Struct provenance = 8;
+  repeated string tags = 9;
+  LibraryEntryStatus status = 10;
+  bool importable = 11;
+  optional string imported_skill_id = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message SkillDraft {
+  string draft_id = 1;
+  string name = 2;
+  optional string description = 3;
+  string request_prompt = 4;
+  string content_markdown = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ListLibraryEntriesRequest {
+  string api_version = 1;
+  string query = 2;
+  repeated string tags = 3;
+  repeated LibrarySourceKind source_kinds = 4;
+  optional bool include_archived = 5;
+  optional bool include_content = 6;
+  int32 limit = 7;
+  LibraryEntryFilterStatus status = 8;
+}
+
+message ListLibraryEntriesResponse {
+  string api_version = 1;
+  repeated LibraryEntry entries = 2;
+}
+
+message GetLibraryEntryRequest {
+  string api_version = 1;
+  string entry_id = 2;
+  optional bool include_content = 3;
+}
+
+message GetLibraryEntryResponse {
+  string api_version = 1;
+  LibraryEntry entry = 2;
+}
+
+message SaveLibrarySkillRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  optional string entry_id = 3;
+  optional string skill_id = 4;
+  string name = 5;
+  optional string description = 6;
+  string content_markdown = 7;
+  repeated string tags = 8;
+  LibrarySourceKind source_kind = 9;
+  optional string source_ref = 10;
+  optional bool enabled = 11;
+  LibraryEntryStatus status = 12;
+}
+
+message SaveLibrarySkillResponse {
+  string api_version = 1;
+  LibraryEntry entry = 2;
+  bool created = 3;
+}
+
+message ImportLibraryEntryRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  string entry_id = 3;
+  optional string skill_id = 4;
+  optional string name = 5;
+}
+
+message ImportLibraryEntryResponse {
+  string api_version = 1;
+  LibraryEntry entry = 2;
+  bool created = 3;
+}
+
+message ArchiveLibraryEntryRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  string entry_id = 3;
+}
+
+message ArchiveLibraryEntryResponse {
+  string api_version = 1;
+  LibraryEntry entry = 2;
+  bool archived = 3;
+}
+
+message SetLibraryEntryEnabledRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  string entry_id = 3;
+  bool enabled = 4;
+}
+
+message SetLibraryEntryEnabledResponse {
+  string api_version = 1;
+  LibraryEntry entry = 2;
+}
+
+message DeleteLibraryEntryRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  string entry_id = 3;
+}
+
+message DeleteLibraryEntryResponse {
+  string api_version = 1;
+  string entry_id = 2;
+  bool deleted = 3;
+}
+
+message ScanLibraryEntriesRequest {
+  string api_version = 1;
+}
+
+message ScanLibraryEntriesResponse {
+  string api_version = 1;
+  repeated LibraryEntry entries = 2;
+  google.protobuf.Timestamp scanned_at = 3;
+}
+
+message ListSkillDraftsRequest {
+  string api_version = 1;
+}
+
+message ListSkillDraftsResponse {
+  string api_version = 1;
+  repeated SkillDraft drafts = 2;
+}
+
+message GetSkillDraftRequest {
+  string api_version = 1;
+  string draft_id = 2;
+}
+
+message GetSkillDraftResponse {
+  string api_version = 1;
+  SkillDraft draft = 2;
+}
+
+message CreateSkillDraftRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  optional string draft_id = 3;
+  optional string name = 4;
+  optional string description = 5;
+  string request_prompt = 6;
+}
+
+message CreateSkillDraftResponse {
+  string api_version = 1;
+  SkillDraft draft = 2;
+  bool created = 3;
+}
+
+message DeleteSkillDraftRequest {
+  string api_version = 1;
+  string idempotency_key = 2;
+  string draft_id = 3;
+}
+
+message DeleteSkillDraftResponse {
+  string api_version = 1;
+  string draft_id = 2;
+  bool deleted = 3;
+}

@@ -14,10 +14,11 @@ proto/spaceskit/v2/
 ├── runtime_service.proto        # Runs, run steps, approvals, artifacts
 ├── space_service.proto          # Space lifecycle, agent provisioning
 ├── coordinator_service.proto    # Turn orchestration, feedback routing
+├── library_service.proto        # Gateway-owned skills, drafts, and library entry admin
 ├── profile_service.proto        # Agent profiles, revisions, insights
 ├── experience_service.proto     # Experience generation & curation
 ├── capability_service.proto     # Capability management
-├── skill_service.proto          # Skills & actions
+├── skill_service.proto          # Generic cross-space skills & actions
 ├── speech_service.proto         # Speech I/O
 ├── event_stream.proto           # Trace events
 ├── health_service.proto         # Health/status reporting
@@ -39,6 +40,12 @@ These definitions are consumed by:
 
 ```bash
 buf generate
+```
+
+From the gateway workspace, verify the generated TS contracts are up to date:
+
+```bash
+cd ../gateway && bun run contract-gate
 ```
 
 ## License

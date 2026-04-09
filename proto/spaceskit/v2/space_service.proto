@@ -4,6 +4,7 @@ package spaceskit.v2;
 
 import "spaceskit/v2/common.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 service SpaceService {
@@ -14,9 +15,14 @@ service SpaceService {
   rpc SetSpaceContextBinding(SetSpaceContextBindingRequest) returns (SetSpaceContextBindingResponse);
   rpc SetSpaceBehaviorProfile(SetSpaceBehaviorProfileRequest) returns (SetSpaceBehaviorProfileResponse);
   rpc SetSpaceVoicePolicy(SetSpaceVoicePolicyRequest) returns (SetSpaceVoicePolicyResponse);
+  rpc SetThinkingCapturePolicy(SetThinkingCapturePolicyRequest) returns (SetThinkingCapturePolicyResponse);
+  rpc GetSpaceMemoryPolicy(GetSpaceMemoryPolicyRequest) returns (GetSpaceMemoryPolicyResponse);
+  rpc SetSpaceMemoryPolicy(SetSpaceMemoryPolicyRequest) returns (SetSpaceMemoryPolicyResponse);
+  rpc EndIncognitoSession(EndIncognitoSessionRequest) returns (EndIncognitoSessionResponse);
   rpc SetTurnModelConfig(SetTurnModelConfigRequest) returns (SetTurnModelConfigResponse);
   rpc SetSecurityPolicy(SetSecurityPolicyRequest) returns (SetSecurityPolicyResponse);
   rpc ArchiveSpace(ArchiveSpaceRequest) returns (ArchiveSpaceResponse);
+  rpc DeleteSpace(DeleteSpaceRequest) returns (DeleteSpaceResponse);
 
   // --- Agent provisioning ---
   rpc AddAgent(AddAgentRequest) returns (AddAgentResponse);
@@ -36,7 +42,13 @@ service SpaceService {
   rpc ListSpaceResources(ListSpaceResourcesRequest) returns (ListSpaceResourcesResponse);
   rpc GetSpaceWorkspace(GetSpaceWorkspaceRequest) returns (GetSpaceWorkspaceResponse);
   rpc SetSpaceWorkspace(SetSpaceWorkspaceRequest) returns (SetSpaceWorkspaceResponse);
+  rpc OpenWorkspace(OpenWorkspaceRequest) returns (OpenWorkspaceResponse);
   rpc SetModeratorProfile(SetModeratorProfileRequest) returns (SetModeratorProfileResponse);
+  rpc ListSpaceTurns(ListSpaceTurnsRequest) returns (ListSpaceTurnsResponse);
+
+  // --- Session continuity ---
+  rpc ListResumableSessions(ListResumableSessionsRequest) returns (ListResumableSessionsResponse);
+  rpc ResumeSession(ResumeSessionRequest) returns (ResumeSessionResponse);
 
   // --- Cross-space context sharing ---
   rpc LinkSpaces(LinkSpacesRequest) returns (LinkSpacesResponse);
@@ -50,10 +62,7 @@ service SpaceService {
   rpc RevokeShareAccess(RevokeShareAccessRequest) returns (RevokeShareAccessResponse);
   rpc ListSpaceParticipants(ListSpaceParticipantsRequest) returns (ListSpaceParticipantsResponse);
 
-  // --- Presets + configurator templates ---
-  rpc ListPresets(ListPresetsRequest) returns (ListPresetsResponse);
-  rpc GetPreset(GetPresetRequest) returns (GetPresetResponse);
-  rpc ApplyPresetToSpace(ApplyPresetToSpaceRequest) returns (ApplyPresetToSpaceResponse);
+  // --- Configurator templates ---
   rpc PreviewSpaceTemplate(PreviewSpaceTemplateRequest) returns (PreviewSpaceTemplateResponse);
   rpc CreateSpaceFromTemplate(CreateSpaceFromTemplateRequest) returns (CreateSpaceFromTemplateResponse);
   rpc SaveSpaceTemplate(SaveSpaceTemplateRequest) returns (SaveSpaceTemplateResponse);
@@ -79,6 +88,10 @@ message CreateSpaceRequest {
   string moderator_profile_id = 13;
   string idempotency_key = 14;
   optional string workspace_root = 15;
+  ThinkingCapturePolicy thinking_capture_policy = 16;
+  ConversationTopology conversation_topology = 17;
+  string prompt_pack_id = 18;
+  SpaceMemoryPolicy memory_policy = 19;
 }
 
 message CreateSpaceResponse {
@@ -144,6 +157,55 @@ message SetSpaceVoicePolicyResponse {
   SpaceState space = 2;
 }
 
+message SetThinkingCapturePolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  ThinkingCapturePolicy thinking_capture_policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetThinkingCapturePolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message GetSpaceMemoryPolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message GetSpaceMemoryPolicyResponse {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceMemoryPolicy memory_policy = 3;
+}
+
+message SetSpaceMemoryPolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceMemoryPolicy memory_policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceMemoryPolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message EndIncognitoSessionRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message EndIncognitoSessionResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+  bool ended = 3;
+  google.protobuf.Timestamp purged_at = 4;
+  string session_id = 5;
+  string reason = 6;
+}
+
 message ArchiveSpaceRequest {
   string api_version = 1;
   string space_id = 2;
@@ -158,6 +220,18 @@ message ArchiveSpaceResponse {
   SpaceState space = 2;
   // If generate_experience was true, the created experience.
   Experience experience = 3;
+}
+
+message DeleteSpaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string reason = 3;
+  string idempotency_key = 4;
+}
+
+message DeleteSpaceResponse {
+  string api_version = 1;
+  SpaceState space = 2;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +277,8 @@ message AddAgentRequest {
   int32 turn_order = 7;
   bool is_primary = 8;
   string idempotency_key = 9;
+  string spawn_context = 10;
+  google.protobuf.Struct context_overrides = 11;
 }
 
 message AddAgentResponse {
@@ -236,6 +312,8 @@ message UpdateAgentAssignmentRequest {
   string idempotency_key = 9;
   // Optional explicit patch paths for clear/default updates.
   google.protobuf.FieldMask update_mask = 10;
+  optional string spawn_context = 11;
+  google.protobuf.Struct context_overrides = 12;
 }
 
 message UpdateAgentAssignmentResponse {
@@ -424,6 +502,46 @@ message SetSpaceWorkspaceResponse {
   SpaceWorkspaceBinding workspace = 2;
 }
 
+enum SpaceOpenWorkspaceStatus {
+  SPACE_OPEN_WORKSPACE_STATUS_UNSPECIFIED = 0;
+  SPACE_OPEN_WORKSPACE_STATUS_OPENED_EXISTING = 1;
+  SPACE_OPEN_WORKSPACE_STATUS_CREATED_NEW = 2;
+  SPACE_OPEN_WORKSPACE_STATUS_UNBOUND = 3;
+  SPACE_OPEN_WORKSPACE_STATUS_CONFLICT = 4;
+}
+
+message SpaceOpenWorkspaceConflict {
+  string reason = 1;
+  string message = 2;
+  string workspace_root = 3;
+  string metadata_path = 4;
+  string existing_space_id = 5;
+  string existing_space_uid = 6;
+  string existing_workspace_root = 7;
+  string requested_space_id = 8;
+  string requested_space_uid = 9;
+}
+
+message SpaceOpenWorkspaceResult {
+  SpaceOpenWorkspaceStatus status = 1;
+  string workspace_root = 2;
+  bool git_repo_detected = 3;
+  bool has_space_metadata = 4;
+  SpaceState space = 5;
+  SpaceWorkspaceBinding workspace = 6;
+  SpaceOpenWorkspaceConflict conflict = 7;
+}
+
+message OpenWorkspaceRequest {
+  string api_version = 1;
+  string workspace_root = 2;
+}
+
+message OpenWorkspaceResponse {
+  string api_version = 1;
+  SpaceOpenWorkspaceResult result = 2;
+}
+
 message SetModeratorProfileRequest {
   string api_version = 1;
   string space_id = 2;
@@ -579,7 +697,7 @@ message ListSpaceParticipantsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Presets + template configurator
+// Template configurator
 // ---------------------------------------------------------------------------
 
 message TemplateAgentDefinition {
@@ -590,87 +708,22 @@ message TemplateAgentDefinition {
   bool is_primary = 5;
 }
 
-message PresetSummary {
-  string preset_id = 1;
-  string kind = 2;
-  string title = 3;
-  string description = 4;
-  string source = 5;
-  int32 version = 6;
-  repeated string tags = 7;
-}
-
-message SpacePresetConfig {
-  string communication_mode = 1;
-  TurnModelStrategy turn_model = 2;
-  repeated TemplateAgentDefinition base_agents = 3;
-  repeated string agent_preset_ids = 4;
-}
-
-message AgentPresetConfig {
-  repeated TemplateAgentDefinition default_agents = 1;
-}
-
-message PresetDetail {
-  PresetSummary summary = 1;
-  SpacePresetConfig space_preset = 2;
-  AgentPresetConfig agent_preset = 3;
-}
-
-message ListPresetsRequest {
-  string api_version = 1;
-  string kind = 2;
-  string source = 3;
-  repeated string tags = 4;
-}
-
-message ListPresetsResponse {
-  string api_version = 1;
-  repeated PresetSummary presets = 2;
-}
-
-message GetPresetRequest {
-  string api_version = 1;
-  string preset_id = 2;
-}
-
-message GetPresetResponse {
-  string api_version = 1;
-  PresetDetail preset = 2;
-}
-
-message ApplyPresetToSpaceRequest {
-  string api_version = 1;
-  string preset_id = 2;
-  string target_space_id = 3;
-  string space_id = 4;
-  string resource_id = 5;
-  string name = 6;
-  string goal = 7;
-  string visibility = 8;
-  string idempotency_key = 9;
-  optional string workspace_root = 10;
-}
-
-message ApplyPresetToSpaceResponse {
-  string api_version = 1;
-  string application_id = 2;
-  string preset_id = 3;
-  string space_id = 4;
-  bool created_space = 5;
-  int32 applied_agents = 6;
-  int32 skipped_agents = 7;
-  google.protobuf.Timestamp applied_at = 8;
-  SpaceState space = 9;
-}
-
 message SpaceTemplateSummary {
   string template_id = 1;
   string title = 2;
   string communication_mode = 3;
-  repeated string agent_preset_ids = 4;
-  string created_by = 5;
-  google.protobuf.Timestamp updated_at = 6;
+  ConversationTopology conversation_topology = 4;
+  string prompt_pack_id = 5;
+  repeated string agent_preset_ids = 6;
+  string created_by = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  string category = 9;
+  string complexity_tier = 10;
+  string icon = 11;
+  bool featured = 12;
+  int32 sort_order = 13;
+  string description = 14;
+  int32 agent_count = 15;
 }
 
 message PreviewSpaceTemplateRequest {
@@ -689,7 +742,9 @@ message PreviewSpaceTemplateResolved {
   string resource_id = 5;
   string communication_mode = 6;
   TurnModelStrategy turn_model = 7;
-  repeated TemplateAgentDefinition initial_agents = 8;
+  ConversationTopology conversation_topology = 8;
+  string prompt_pack_id = 9;
+  repeated TemplateAgentDefinition initial_agents = 10;
 }
 
 message PreviewSpaceTemplateResponse {
@@ -723,14 +778,89 @@ message SaveSpaceTemplateRequest {
   string title = 3;
   string description = 4;
   string communication_mode = 5;
-  repeated TemplateAgentDefinition base_agents = 6;
-  repeated string agent_preset_ids = 7;
-  string source_space_id = 8;
-  repeated string tags = 9;
+  ConversationTopology conversation_topology = 6;
+  string prompt_pack_id = 7;
+  repeated TemplateAgentDefinition base_agents = 8;
+  repeated string agent_preset_ids = 9;
+  string source_space_id = 10;
+  repeated string tags = 11;
 }
 
 message SaveSpaceTemplateResponse {
   string api_version = 1;
   SpaceTemplateSummary template = 2;
   bool created = 3;
+}
+
+message SpaceTurn {
+  string turn_id = 1;
+  string root_turn_id = 2;
+  string reply_to_turn_id = 3;
+  string agent_id = 4;
+  string status = 5;
+  string input_text = 6;
+  string output_text = 7;
+  ConversationTopology conversation_topology = 8;
+  TranscriptVisibility transcript_visibility = 9;
+  string summary_turn_id = 10;
+  TurnExecutionMode execution_mode = 11;
+  ReasoningEffort reasoning_effort = 12;
+  int32 prompt_tokens = 13;
+  int32 completion_tokens = 14;
+  int32 total_tokens = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp completed_at = 17;
+  ContentEnvelope input_content = 18;
+  ContentEnvelope output_content = 19;
+}
+
+message ListSpaceTurnsRequest {
+  string api_version = 1;
+  string space_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+  string last_seen_turn_id = 5;
+}
+
+message ListSpaceTurnsResponse {
+  string api_version = 1;
+  string space_id = 2;
+  repeated SpaceTurn turns = 3;
+  int32 total = 4;
+  optional int32 next_offset = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Session continuity
+// ---------------------------------------------------------------------------
+
+message ResumableSession {
+  string session_id = 1;
+  string space_id = 2;
+  string space_name = 3;
+  google.protobuf.Timestamp last_activity_at = 4;
+  string continuity_mode = 5;
+  uint32 turn_count = 6;
+}
+
+message ListResumableSessionsRequest {
+  string api_version = 1;
+}
+
+message ListResumableSessionsResponse {
+  string api_version = 1;
+  repeated ResumableSession sessions = 2;
+}
+
+message ResumeSessionRequest {
+  string api_version = 1;
+  string session_id = 2;
+  string space_id = 3;
+}
+
+message ResumeSessionResponse {
+  string api_version = 1;
+  bool resumed = 2;
+  optional string checkpoint_id = 3;
+  optional string last_turn_id = 4;
 }

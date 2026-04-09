@@ -58,6 +58,8 @@ enum TraceEventType {
   // Orchestrator summary events
   TRACE_EVENT_TYPE_ORCHESTRATOR_SUMMARY_COMPLETED = 39;
   TRACE_EVENT_TYPE_ORCHESTRATOR_SUMMARY_FAILED = 40;
+  // Turn cancellation
+  TRACE_EVENT_TYPE_TURN_CANCELLED = 41;
 }
 
 message TraceEventEnvelope {

@@ -1,0 +1,235 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+
+service ConciergeCallService {
+  rpc StartCall(ConciergeCallStartRequest) returns (ConciergeCallStartResponse);
+  rpc AnswerCall(ConciergeCallAnswerRequest) returns (ConciergeCallAnswerResponse);
+  rpc EndCall(ConciergeCallEndRequest) returns (ConciergeCallEndResponse);
+  rpc SetMuted(ConciergeCallSetMutedRequest) returns (ConciergeCallSetMutedResponse);
+  rpc AppendAudio(ConciergeCallAppendAudioRequest) returns (ConciergeCallAppendAudioResponse);
+  rpc Control(ConciergeCallControlRequest) returns (ConciergeCallControlResponse);
+  rpc PrepareHandoff(ConciergeCallPrepareHandoffRequest) returns (ConciergeCallPrepareHandoffResponse);
+  rpc AcceptHandoff(ConciergeCallAcceptHandoffRequest) returns (ConciergeCallAcceptHandoffResponse);
+  rpc RegisterPush(ConciergeCallRegisterPushRequest) returns (ConciergeCallRegisterPushResponse);
+}
+
+enum ConciergeCallState {
+  CONCIERGE_CALL_STATE_UNSPECIFIED = 0;
+  CONCIERGE_CALL_STATE_RINGING = 1;
+  CONCIERGE_CALL_STATE_CONNECTING = 2;
+  CONCIERGE_CALL_STATE_ACTIVE = 3;
+  CONCIERGE_CALL_STATE_ENDED = 4;
+  CONCIERGE_CALL_STATE_FAILED = 5;
+}
+
+enum ConciergeTtsMode {
+  CONCIERGE_TTS_MODE_UNSPECIFIED = 0;
+  CONCIERGE_TTS_MODE_APPLE_NATIVE = 1;
+  CONCIERGE_TTS_MODE_ELEVENLABS_STREAMING = 2;
+}
+
+enum ConciergeCallUrgency {
+  CONCIERGE_CALL_URGENCY_UNSPECIFIED = 0;
+  CONCIERGE_CALL_URGENCY_PASSIVE = 1;
+  CONCIERGE_CALL_URGENCY_IMPORTANT = 2;
+  CONCIERGE_CALL_URGENCY_URGENT = 3;
+}
+
+enum ConciergeCallMediaEventType {
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_UNSPECIFIED = 0;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_TRANSCRIPT_PARTIAL = 1;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_TRANSCRIPT_FINAL = 2;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_ASSISTANT_TEXT_PARTIAL = 3;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_ASSISTANT_TEXT_FINAL = 4;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_ASSISTANT_AUDIO_CHUNK = 5;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_INTERRUPTED = 6;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_ROUTE_CHANGED = 7;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_PLAYBACK_STARTED = 8;
+  CONCIERGE_CALL_MEDIA_EVENT_TYPE_PLAYBACK_ENDED = 9;
+}
+
+enum ConciergeCallControlCommand {
+  CONCIERGE_CALL_CONTROL_COMMAND_UNSPECIFIED = 0;
+  CONCIERGE_CALL_CONTROL_COMMAND_INTERRUPT = 1;
+}
+
+message ConciergeCallMetrics {
+  double call_setup_ms = 1;
+  double stt_first_partial_ms = 2;
+  double llm_first_token_ms = 3;
+  double tts_first_audio_ms = 4;
+  int32 route_change_count = 5;
+  int32 handoff_count = 6;
+  int32 provider_fallback_count = 7;
+  int32 interrupt_count = 8;
+  int32 playback_underrun_count = 9;
+  int32 reconnect_count = 10;
+}
+
+message ConciergeCallHandoffContext {
+  string destination_platform = 1;
+  string destination_device_id = 2;
+  string destination_client_id = 3;
+  string resume_url = 4;
+}
+
+message ConciergeCallHandoffToken {
+  string token = 1;
+  string call_id = 2;
+  string source_device_id = 3;
+  string destination_platform = 4;
+  string destination_device_id = 5;
+  string destination_client_id = 6;
+  string resume_url = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  string signature = 9;
+}
+
+message ConciergeVoipPushRegistration {
+  string principal_id = 1;
+  string device_id = 2;
+  string platform = 3;
+  string push_token = 4;
+  string voip_topic = 5;
+  bool proactive_opt_in = 6;
+  google.protobuf.Timestamp registered_at = 7;
+}
+
+message ConciergeCallEvent {
+  string call_id = 1;
+  ConciergeCallState state = 2;
+  string platform = 3;
+  string device_id = 4;
+  string display_name = 5;
+  ConciergeTtsMode tts_mode = 6;
+  bool muted = 7;
+  string target_gateway_id = 8;
+  string transcript_delta = 9;
+  string assistant_text_delta = 10;
+  ConciergeCallUrgency urgency = 11;
+  ConciergeCallMetrics metrics = 12;
+  string reason = 13;
+  google.protobuf.Timestamp emitted_at = 14;
+  ConciergeCallHandoffToken handoff_token = 15;
+  ConciergeCallMediaEventType media_event_type = 16;
+  int32 sequence = 17;
+  bool transcript_final = 18;
+  bool assistant_text_final = 19;
+  string active_turn_id = 20;
+  string provider_source = 21;
+  string provider_id = 22;
+  string fallback_reason = 23;
+  string assistant_audio_base64 = 24;
+  double assistant_audio_duration_seconds = 25;
+}
+
+message ConciergeCallStartRequest {
+  string call_id = 1;
+  string device_id = 2;
+  string platform = 3;
+  ConciergeTtsMode tts_mode = 4;
+  string target_gateway_id = 5;
+  ConciergeCallHandoffContext handoff_context = 6;
+  string display_name = 7;
+  string space_id = 8;
+  string space_uid = 9;
+  string target_agent_id = 10;
+}
+
+message ConciergeCallStartResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallAnswerRequest {
+  string call_id = 1;
+  string device_id = 2;
+  string platform = 3;
+}
+
+message ConciergeCallAnswerResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallEndRequest {
+  string call_id = 1;
+  string reason = 2;
+}
+
+message ConciergeCallEndResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallSetMutedRequest {
+  string call_id = 1;
+  bool muted = 2;
+}
+
+message ConciergeCallSetMutedResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallAppendAudioRequest {
+  string call_id = 1;
+  int32 sequence = 2;
+  string audio_base64 = 3;
+  double audio_duration_seconds = 4;
+  int32 sample_rate_hz = 5;
+  int32 channels = 6;
+  string codec = 7;
+  string transcript_text = 8;
+  bool is_final = 9;
+}
+
+message ConciergeCallAppendAudioResponse {
+  repeated ConciergeCallEvent events = 1;
+}
+
+message ConciergeCallControlRequest {
+  string call_id = 1;
+  ConciergeCallControlCommand command = 2;
+  string reason = 3;
+}
+
+message ConciergeCallControlResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallPrepareHandoffRequest {
+  string call_id = 1;
+  string source_device_id = 2;
+  string destination_platform = 3;
+  string destination_device_id = 4;
+  string destination_client_id = 5;
+  string resume_url = 6;
+}
+
+message ConciergeCallPrepareHandoffResponse {
+  ConciergeCallEvent event = 1;
+  ConciergeCallHandoffToken handoff_token = 2;
+}
+
+message ConciergeCallAcceptHandoffRequest {
+  string call_id = 1;
+  string handoff_token = 2;
+  string device_id = 3;
+  string platform = 4;
+}
+
+message ConciergeCallAcceptHandoffResponse {
+  ConciergeCallEvent event = 1;
+}
+
+message ConciergeCallRegisterPushRequest {
+  string device_id = 1;
+  string platform = 2;
+  string push_token = 3;
+  string voip_topic = 4;
+  bool proactive_opt_in = 5;
+}
+
+message ConciergeCallRegisterPushResponse {
+  ConciergeVoipPushRegistration registration = 1;
+}

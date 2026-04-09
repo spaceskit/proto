@@ -12,6 +12,7 @@ service CoordinatorService {
   rpc CallAgent(CallAgentRequest) returns (CallAgentResponse);
   rpc GetAgentCallHandle(GetAgentCallHandleRequest) returns (GetAgentCallHandleResponse);
   rpc ListAgentCallHandles(ListAgentCallHandlesRequest) returns (ListAgentCallHandlesResponse);
+  rpc CancelTurn(CancelTurnRequest) returns (CancelTurnResponse);
 
   // --- Human-in-the-loop feedback ---
   rpc ListPendingFeedback(ListPendingFeedbackRequest) returns (ListPendingFeedbackResponse);
@@ -29,6 +30,11 @@ message SubmitSpaceInputRequest {
   string text = 3;
   string source = 4;
   string idempotency_key = 5;
+  repeated string target_agent_ids = 6;
+  string reply_to_turn_id = 7;
+  TurnExecutionMode execution_mode = 8;
+  ReasoningEffort reasoning_effort = 9;
+  ConversationTopology conversation_topology = 10;
 }
 
 message SubmitSpaceInputResponse {
@@ -86,6 +92,17 @@ message ListAgentCallHandlesRequest {
 message ListAgentCallHandlesResponse {
   string api_version = 1;
   repeated AgentCallHandle handles = 2;
+}
+
+message CancelTurnRequest {
+  string api_version = 1;
+  string space_uid = 2;
+  string turn_id = 3;
+}
+
+message CancelTurnResponse {
+  string api_version = 1;
+  bool acknowledged = 2;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,13 +201,14 @@ message OrchestratorSummaryArtifact {
   string version = 2;
   string space_id = 3;
   string turn_id = 4;
-  string turn_model = 5;
-  google.protobuf.Timestamp generated_at = 6;
-  string status = 7; // completed | degraded
-  string failure_reason = 8;
-  repeated OrchestratorSummaryParticipant participants = 9;
-  repeated OrchestratorSummaryHighlight highlights = 10;
-  string final_summary_text = 11;
+  ConversationTopology conversation_topology = 5;
+  string turn_model = 6;
+  google.protobuf.Timestamp generated_at = 7;
+  string status = 8; // completed | degraded
+  string failure_reason = 9;
+  repeated OrchestratorSummaryParticipant participants = 10;
+  repeated OrchestratorSummaryHighlight highlights = 11;
+  string final_summary_text = 12;
 }
 
 message SubmitOrchestratorCommandRequest {

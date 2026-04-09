@@ -88,6 +88,13 @@ message VoiceUsageSourceSummary {
   VoiceUsageWindowSummary usage = 2;
 }
 
+message VoiceUsageProviderSummary {
+  VoiceChannel channel = 1;
+  VoiceProviderSource source = 2;
+  string provider_id = 3;
+  VoiceUsageWindowSummary usage = 4;
+}
+
 message VoiceUsageLockSummary {
   bool enabled = 1;
   double managed_stt_seconds_monthly_limit = 2;
@@ -109,6 +116,7 @@ message VoiceUsageSnapshot {
   VoiceUsageWindows windows = 1;
   repeated VoiceUsageSourceSummary by_source = 2;
   VoiceUsageLockSummary lock = 3;
+  repeated VoiceUsageProviderSummary by_provider = 4;
 }
 
 message UsageWindows {

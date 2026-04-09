@@ -10,11 +10,81 @@ import "spaceskit/v2/common.proto";
 service GatewayService {
   rpc GetGatewayPolicy(GetGatewayPolicyRequest) returns (GetGatewayPolicyResponse);
   rpc UpdateGatewayPolicy(UpdateGatewayPolicyRequest) returns (UpdateGatewayPolicyResponse);
+  rpc GetWorkspaceDefaults(GetWorkspaceDefaultsRequest) returns (GetWorkspaceDefaultsResponse);
+  rpc SetWorkspaceDefaults(SetWorkspaceDefaultsRequest) returns (SetWorkspaceDefaultsResponse);
+  rpc GetMemoryDefaults(GetMemoryDefaultsRequest) returns (GetMemoryDefaultsResponse);
+  rpc SetMemoryDefaults(SetMemoryDefaultsRequest) returns (SetMemoryDefaultsResponse);
+  rpc GetExternalConnectivity(GetExternalConnectivityRequest) returns (GetExternalConnectivityResponse);
+  rpc SetExternalConnectivity(SetExternalConnectivityRequest) returns (SetExternalConnectivityResponse);
   rpc FactoryResetGateway(FactoryResetGatewayRequest) returns (FactoryResetGatewayResponse);
   rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
   rpc RotateDeviceKey(RotateDeviceKeyRequest) returns (RotateDeviceKeyResponse);
   rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
   rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+  rpc GetGatewayIntegrationsSnapshot(GetGatewayIntegrationsSnapshotRequest) returns (GetGatewayIntegrationsSnapshotResponse);
+  rpc UpsertConnector(UpsertConnectorRequest) returns (UpsertConnectorResponse);
+  rpc RemoveConnector(RemoveConnectorRequest) returns (RemoveConnectorResponse);
+  rpc UpsertConnectorBinding(UpsertConnectorBindingRequest) returns (UpsertConnectorBindingResponse);
+  rpc RemoveConnectorBinding(RemoveConnectorBindingRequest) returns (RemoveConnectorBindingResponse);
+  rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
+}
+
+message GatewayWorkspaceDefaults {
+  string space_home_root = 1;
+  google.protobuf.Timestamp updated_at = 2;
+}
+
+enum GatewayExternalConnectivityMode {
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_TAILSCALE = 2;
+}
+
+enum GatewayExternalConnectivityState {
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_UNSUPPORTED = 2;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_MISSING_DEPENDENCY = 3;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_LOGGED_OUT = 4;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_SERVE_MISSING = 5;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_READY = 6;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_ERROR = 7;
+}
+
+message GatewayExternalConnectivitySettings {
+  GatewayExternalConnectivityMode mode = 1;
+  google.protobuf.Timestamp updated_at = 2;
+}
+
+message GatewayExternalConnectivityAdvertisedEndpoint {
+  string provider = 1;
+  string label = 2;
+  string host = 3;
+  uint32 port = 4;
+  string websocket_url = 5;
+  string health_url = 6;
+}
+
+message GatewayExternalConnectivityTailscaleStatus {
+  bool cli_available = 1;
+  optional string version = 2;
+  optional string backend_state = 3;
+  repeated string health = 4;
+  optional string host_name = 5;
+  optional string dns_name = 6;
+  optional string magic_dns_suffix = 7;
+  repeated string tailscale_ips = 8;
+  bool serve_configured = 9;
+  optional string serve_target = 10;
+  optional uint32 serve_port = 11;
+}
+
+message GatewayExternalConnectivityStatus {
+  GatewayExternalConnectivityState state = 1;
+  string summary = 2;
+  optional string remediation = 3;
+  repeated GatewayExternalConnectivityAdvertisedEndpoint advertised_endpoints = 4;
+  optional GatewayExternalConnectivityTailscaleStatus tailscale_status = 5;
 }
 
 message GatewayPolicy {
@@ -53,6 +123,66 @@ message UpdateGatewayPolicyRequest {
 message UpdateGatewayPolicyResponse {
   string api_version = 1;
   GatewayPolicy policy = 2;
+}
+
+message GetWorkspaceDefaultsRequest {
+  string api_version = 1;
+}
+
+message GetWorkspaceDefaultsResponse {
+  string api_version = 1;
+  GatewayWorkspaceDefaults defaults = 2;
+}
+
+message SetWorkspaceDefaultsRequest {
+  string api_version = 1;
+  optional string space_home_root = 2;
+}
+
+message SetWorkspaceDefaultsResponse {
+  string api_version = 1;
+  GatewayWorkspaceDefaults defaults = 2;
+}
+
+message GetMemoryDefaultsRequest {
+  string api_version = 1;
+}
+
+message GetMemoryDefaultsResponse {
+  string api_version = 1;
+  GatewayMemoryDefaults defaults = 2;
+}
+
+message SetMemoryDefaultsRequest {
+  string api_version = 1;
+  SpaceExperienceCaptureMode default_experience_capture = 2;
+  SpacePrivacyMode default_space_privacy_mode = 3;
+}
+
+message SetMemoryDefaultsResponse {
+  string api_version = 1;
+  GatewayMemoryDefaults defaults = 2;
+}
+
+message GetExternalConnectivityRequest {
+  string api_version = 1;
+}
+
+message GetExternalConnectivityResponse {
+  string api_version = 1;
+  GatewayExternalConnectivitySettings settings = 2;
+  GatewayExternalConnectivityStatus status = 3;
+}
+
+message SetExternalConnectivityRequest {
+  string api_version = 1;
+  GatewayExternalConnectivityMode mode = 2;
+}
+
+message SetExternalConnectivityResponse {
+  string api_version = 1;
+  GatewayExternalConnectivitySettings settings = 2;
+  GatewayExternalConnectivityStatus status = 3;
 }
 
 message FactoryResetGatewayRequest {
@@ -114,4 +244,268 @@ message ListDevicesRequest {
 message ListDevicesResponse {
   string api_version = 1;
   repeated DeviceIdentity devices = 2;
+}
+
+enum GatewayIntegrationGroupId {
+  GATEWAY_INTEGRATION_GROUP_ID_UNSPECIFIED = 0;
+  GATEWAY_INTEGRATION_GROUP_ID_BUILT_IN_INTEGRATIONS = 1;
+  GATEWAY_INTEGRATION_GROUP_ID_BUILT_IN_MCP_ADMIN = 2;
+  GATEWAY_INTEGRATION_GROUP_ID_MCP_SERVERS = 3;
+  GATEWAY_INTEGRATION_GROUP_ID_CLI_TOOLS = 4;
+  GATEWAY_INTEGRATION_GROUP_ID_EXTERNAL_CONNECTORS = 5;
+}
+
+enum GatewayIntegrationEntryKind {
+  GATEWAY_INTEGRATION_ENTRY_KIND_UNSPECIFIED = 0;
+  GATEWAY_INTEGRATION_ENTRY_KIND_BUILT_IN_INTEGRATION = 1;
+  GATEWAY_INTEGRATION_ENTRY_KIND_BUILT_IN_MCP_ADMIN = 2;
+  GATEWAY_INTEGRATION_ENTRY_KIND_MCP_SERVER = 3;
+  GATEWAY_INTEGRATION_ENTRY_KIND_CLI_TOOL = 4;
+  GATEWAY_INTEGRATION_ENTRY_KIND_CONNECTOR_FAMILY = 5;
+  GATEWAY_INTEGRATION_ENTRY_KIND_CONNECTOR = 6;
+}
+
+message GatewayIntegrationBadge {
+  string text = 1;
+  string tone = 2;
+}
+
+message GatewayBuiltinIntegrationEntry {
+  string integration_id = 1;
+  string display_name = 2;
+  string description = 3;
+  bool enabled = 4;
+  repeated string capability_types = 5;
+  string management_summary = 6;
+}
+
+message GatewayBuiltinMcpAdminRuntimeState {
+  string endpoint_path = 1;
+  bool effective_enabled = 2;
+  bool bootstrap_default_enabled = 3;
+  string auth_mode = 4;
+  bool token_issuer_available = 5;
+  string default_target_space_id = 6;
+}
+
+message GatewayBuiltinMcpAdminEntry {
+  bool enabled = 1;
+  bool allow_target_space_override = 2;
+  repeated string allowed_tools = 3;
+  GatewayBuiltinMcpAdminRuntimeState runtime_state = 4;
+}
+
+message GatewayCliToolEntry {
+  string tool_id = 1;
+  string display_name = 2;
+  string description = 3;
+  string resolved_executable = 4;
+  repeated string args_template = 5;
+  string cwd_mode = 6;
+  string output_mode = 7;
+  google.protobuf.Struct input_schema = 8;
+  google.protobuf.Struct input_example = 9;
+  bool requires_approval = 10;
+  string approval_grant_mode = 11;
+  int32 approval_window_seconds = 12;
+  string readme_content = 13;
+  string instructions = 14;
+  repeated string tags = 15;
+  bool available = 16;
+  string availability_reason = 17;
+  string danger_level = 18;
+  uint32 active_approval_grant_count = 19;
+}
+
+message GatewayConnectorSecretRef {
+  string key = 1;
+  string ref = 2;
+  optional string backend = 3;
+}
+
+message GatewayConnectorFamily {
+  string family_id = 1;
+  string display_name = 2;
+  string kind = 3;
+  string runtime = 4;
+  string trust_class = 5;
+  bool embedded_enabled = 6;
+  repeated string capability_types = 7;
+  google.protobuf.Struct features = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message GatewayConnector {
+  string connector_id = 1;
+  string family_id = 2;
+  string display_name = 3;
+  string account_fingerprint_hash = 4;
+  string label_slug = 5;
+  string status = 6;
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message GatewayConnectorBinding {
+  string binding_id = 1;
+  string connector_id = 2;
+  string binding_type = 3;
+  google.protobuf.Struct selector = 4;
+  string target_type = 5;
+  optional string target_space_id = 6;
+  repeated string allowed_actions = 7;
+  repeated string capability_types = 8;
+  int32 priority = 9;
+  bool enabled = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message GatewayConnectorPolicy {
+  string scope_type = 1;
+  string scope_id = 2;
+  int32 requests_per_minute = 3;
+  int32 burst = 4;
+  bool disabled = 5;
+  optional string disable_reason = 6;
+  optional string disabled_until = 7;
+  string updated_by = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message GatewayConnectorInboundRoute {
+  string route = 1;
+  string target_type = 2;
+  optional string target_space_id = 3;
+  optional string binding_id = 4;
+  optional int32 matched_score = 5;
+}
+
+message GatewayExternalConnectorFamilyEntry {
+  GatewayConnectorFamily family = 1;
+  uint32 configured_connector_count = 2;
+}
+
+message GatewayExternalConnectorEntry {
+  GatewayConnector connector = 1;
+  GatewayConnectorFamily family = 2;
+  repeated GatewayConnectorBinding bindings = 3;
+}
+
+message GatewayMcpServerEntry {
+  string space_id = 1;
+  string space_name = 2;
+  SpaceMcpEndpointConfig endpoint = 3;
+}
+
+message GatewayIntegrationEntry {
+  string entry_id = 1;
+  GatewayIntegrationEntryKind kind = 2;
+  string title = 3;
+  string subtitle = 4;
+  repeated GatewayIntegrationBadge badges = 5;
+
+  oneof detail {
+    GatewayBuiltinIntegrationEntry builtin_integration = 20;
+    GatewayBuiltinMcpAdminEntry builtin_mcp_admin = 21;
+    GatewayMcpServerEntry mcp_server = 22;
+    GatewayCliToolEntry cli_tool = 23;
+    GatewayExternalConnectorFamilyEntry connector_family = 24;
+    GatewayExternalConnectorEntry connector = 25;
+  }
+}
+
+message GatewayIntegrationGroup {
+  GatewayIntegrationGroupId group_id = 1;
+  string title = 2;
+  string summary = 3;
+  repeated GatewayIntegrationEntry entries = 4;
+}
+
+message GatewayIntegrationsSnapshot {
+  repeated GatewayIntegrationGroup groups = 1;
+  google.protobuf.Timestamp generated_at = 2;
+}
+
+message GetGatewayIntegrationsSnapshotRequest {
+  string api_version = 1;
+}
+
+message GetGatewayIntegrationsSnapshotResponse {
+  string api_version = 1;
+  GatewayIntegrationsSnapshot snapshot = 2;
+}
+
+message UpsertConnectorRequest {
+  string api_version = 1;
+  optional string connector_id = 2;
+  string family_id = 3;
+  string display_name = 4;
+  string account_fingerprint = 5;
+  string label = 6;
+  optional string status = 7;
+  google.protobuf.Struct metadata = 8;
+  repeated GatewayConnectorSecretRef secret_refs = 9;
+}
+
+message UpsertConnectorResponse {
+  string api_version = 1;
+  GatewayConnector connector = 2;
+}
+
+message RemoveConnectorRequest {
+  string api_version = 1;
+  string connector_id = 2;
+}
+
+message RemoveConnectorResponse {
+  string api_version = 1;
+  string connector_id = 2;
+  bool removed = 3;
+}
+
+message UpsertConnectorBindingRequest {
+  string api_version = 1;
+  optional string binding_id = 2;
+  string connector_id = 3;
+  string binding_type = 4;
+  google.protobuf.Struct selector = 5;
+  string target_type = 6;
+  optional string target_space_id = 7;
+  repeated string allowed_actions = 8;
+  repeated string capability_types = 9;
+  int32 priority = 10;
+  bool enabled = 11;
+}
+
+message UpsertConnectorBindingResponse {
+  string api_version = 1;
+  GatewayConnectorBinding binding = 2;
+}
+
+message RemoveConnectorBindingRequest {
+  string api_version = 1;
+  string binding_id = 2;
+}
+
+message RemoveConnectorBindingResponse {
+  string api_version = 1;
+  string binding_id = 2;
+  bool removed = 3;
+}
+
+message TestConnectorRequest {
+  string api_version = 1;
+  string connector_id = 2;
+}
+
+message TestConnectorResponse {
+  string api_version = 1;
+  bool ok = 2;
+  optional string reason = 3;
+  optional GatewayConnector connector = 4;
+  optional GatewayConnectorInboundRoute inbound_route = 5;
+  optional GatewayConnectorPolicy policy = 6;
 }
