@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+
+// SharingService — V2 invite issuance and join surface.
+//
+// This service is additive to the existing SpaceService share invite RPCs.
+// The V2 invite payload embeds the gateway's public Tailscale Funnel URL so
+// that recipients on a different network can resolve and join from anywhere.
+service SharingService {
+  // Issue a v2 invite link for a space. The returned payload embeds the
+  // Funnel URL (when funnel is READY) as the gateway URL the recipient
+  // should hit, plus a short-lived signed token bound to the invite.
+  rpc CreateInviteV2(CreateInviteV2Request) returns (CreateInviteV2Response);
+}
+
+// V2 invite link payload — mirrors the TypeScript InviteLinkV2 codec.
+message SpaceInviteLinkV2 {
+  // Encoded payload version (always "v2").
+  string version = 1;
+  // Target space identifier.
+  string space_id = 2;
+  // Short-lived signed invite token (one-shot, single-use).
+  string token = 3;
+  // Public gateway URL the recipient should connect to (Funnel URL when
+  // available). Empty when funnel is not READY and only direct LAN joins
+  // are possible.
+  optional string gateway_url = 4;
+  // Optional relay routing hint for clients that resolve relay state.
+  optional string relay_hint = 5;
+  // Encoded base64url representation of the full invite link payload —
+  // this is what the recipient opens via deep link.
+  string encoded_link = 6;
+}
+
+message CreateInviteV2Request {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceShareAccessMode mode = 3;
+  // Token TTL in seconds. Server clamps to <= 24 hours.
+  int32 expires_in_seconds = 4;
+}
+
+message CreateInviteV2Response {
+  string api_version = 1;
+  SpaceInviteLinkV2 invite = 2;
+  // Server-side invite metadata (matches the legacy SpaceShareInvite shape
+  // but is created via this v2 path).
+  SpaceShareInvite share_invite = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}

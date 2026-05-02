@@ -51,9 +51,19 @@ enum GatewayExternalConnectivityState {
   GATEWAY_EXTERNAL_CONNECTIVITY_STATE_ERROR = 7;
 }
 
+enum GatewayExternalConnectivityFunnelState {
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_UNAVAILABLE = 2;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_NOT_CONFIGURED = 3;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_READY = 4;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_ERROR = 5;
+}
+
 message GatewayExternalConnectivitySettings {
   GatewayExternalConnectivityMode mode = 1;
   google.protobuf.Timestamp updated_at = 2;
+  optional bool funnel_enabled = 3;
 }
 
 message GatewayExternalConnectivityAdvertisedEndpoint {
@@ -79,12 +89,22 @@ message GatewayExternalConnectivityTailscaleStatus {
   optional uint32 serve_port = 11;
 }
 
+message GatewayExternalConnectivityFunnelStatus {
+  GatewayExternalConnectivityFunnelState state = 1;
+  bool funnel_configured = 2;
+  optional string funnel_url = 3;
+  repeated string exposed_paths = 4;
+  optional string summary = 5;
+  optional string remediation = 6;
+}
+
 message GatewayExternalConnectivityStatus {
   GatewayExternalConnectivityState state = 1;
   string summary = 2;
   optional string remediation = 3;
   repeated GatewayExternalConnectivityAdvertisedEndpoint advertised_endpoints = 4;
   optional GatewayExternalConnectivityTailscaleStatus tailscale_status = 5;
+  optional GatewayExternalConnectivityFunnelStatus funnel_status = 6;
 }
 
 message GatewayPolicy {
@@ -177,6 +197,7 @@ message GetExternalConnectivityResponse {
 message SetExternalConnectivityRequest {
   string api_version = 1;
   GatewayExternalConnectivityMode mode = 2;
+  optional bool funnel_enabled = 3;
 }
 
 message SetExternalConnectivityResponse {
