@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+import "spaceskit/v2/security_types.proto";
+
+enum SpaceWorkspaceMode {
+  SPACE_WORKSPACE_MODE_UNSPECIFIED = 0;
+  SPACE_WORKSPACE_MODE_MANAGED = 1;
+  SPACE_WORKSPACE_MODE_FOLDER_BOUND = 2;
+}
+
+enum SpaceWorkspaceMetadataStatus {
+  SPACE_WORKSPACE_METADATA_STATUS_UNSPECIFIED = 0;
+  SPACE_WORKSPACE_METADATA_STATUS_READY = 1;
+  SPACE_WORKSPACE_METADATA_STATUS_CONFLICT = 2;
+}
+
+message SpaceWorkspaceBinding {
+  string space_id = 1;
+  string space_uid = 2;
+  SpaceWorkspaceMode mode = 3;
+  string explicit_workspace_root = 4;
+  string effective_workspace_root = 5;
+  string meta_path = 6;
+  string logs_path = 7;
+  string work_path = 8;
+  string shared_context_path = 9;
+  string scratchpads_path = 10;
+  int32 layout_version = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  bool git_repo_detected = 13;
+  SpaceWorkspaceMetadataStatus metadata_status = 14;
+  string artifacts_path = 15;
+  repeated string discovered_project_files = 16;
+}
+
+enum ThinkingCapturePolicy {
+  THINKING_CAPTURE_POLICY_UNSPECIFIED = 0;
+  THINKING_CAPTURE_POLICY_OFF = 1;
+  THINKING_CAPTURE_POLICY_SUMMARY = 2;
+  THINKING_CAPTURE_POLICY_FULL = 3;
+}
+
+enum SpaceExperienceCaptureMode {
+  SPACE_EXPERIENCE_CAPTURE_MODE_UNSPECIFIED = 0;
+  SPACE_EXPERIENCE_CAPTURE_MODE_INHERIT = 1;
+  SPACE_EXPERIENCE_CAPTURE_MODE_ENABLED = 2;
+  SPACE_EXPERIENCE_CAPTURE_MODE_DISABLED = 3;
+}
+
+enum SpacePrivacyMode {
+  SPACE_PRIVACY_MODE_UNSPECIFIED = 0;
+  SPACE_PRIVACY_MODE_STANDARD = 1;
+  SPACE_PRIVACY_MODE_INCOGNITO_SESSION = 2;
+}
+
+message SpaceMemoryPolicy {
+  SpaceExperienceCaptureMode experience_capture = 1;
+  SpacePrivacyMode privacy_mode = 2;
+}
+
+message GatewayMemoryDefaults {
+  SpaceExperienceCaptureMode default_experience_capture = 1;
+  SpacePrivacyMode default_space_privacy_mode = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Space model
+// ---------------------------------------------------------------------------
+
+message SpaceState {
+  string api_version = 1;
+  // Unique within a single gateway namespace.
+  // Clients handling multiple gateways MUST treat (gateway, space_id) as the stable composite identifier.
+  string space_id = 2;
+  string resource_id = 3;
+  string name = 4;
+  string goal = 5;
+  SpaceStatus status = 6;
+  TurnModelStrategy turn_model = 7;
+  BehaviorProfile behavior_profile = 8;
+  SpaceContextBinding context_binding = 9;
+  VoicePolicy voice_policy = 10;
+  string template_id = 11;
+  // Per-agent security scopes for this space.
+  repeated AgentSecurityScope agent_scopes = 12;
+  // Security policy governing this space.
+  SecurityPolicy security_policy = 13;
+  // Agents assigned to this space with their roles and config.
+  repeated SpaceAgentAssignment agent_assignments = 14;
+  // Detailed turn model configuration.
+  TurnModelConfig turn_model_config = 15;
+  // Moderator profile for this space (if any).
+  string moderator_profile_id = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+  // Space-level skill assignments applied to all agents in this space.
+  repeated string skill_ids = 19;
+  // Space-level resource assignments.
+  repeated SpaceResource resources = 20;
+  // Immutable UUID used as globally stable space identity across gateways and clients.
+  string space_uid = 21;
+  // First-class per-space workspace binding.
+  SpaceWorkspaceBinding workspace = 22;
+  // Per-space provider-thinking persistence policy.
+  ThinkingCapturePolicy thinking_capture_policy = 23;
+  ConversationTopology conversation_topology = 24;
+  string prompt_pack_id = 25;
+  SpaceMemoryPolicy memory_policy = 26;
+  google.protobuf.Timestamp archived_at = 27;
+  google.protobuf.Timestamp deleted_at = 28;
+}
+
+message SpaceMcpEndpointConfig {
+  string endpoint_id = 1;
+  string space_id = 2;
+  string transport = 3;
+  string endpoint = 4;
+  repeated string args = 5;
+  string secret_ref = 6;
+  bool enabled = 7;
+  string health_status = 8;
+  string health_message = 9;
+  google.protobuf.Timestamp last_connected_at = 10;
+  google.protobuf.Timestamp last_error_at = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message McpDiscoveredAgent {
+  string remote_agent_id = 1;
+  string display_name = 2;
+  string description = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message ExternalAgentRuntimeBinding {
+  string runtime_kind = 1; // "external_mcp"
+  string space_id = 2;
+  string agent_id = 3;
+  string endpoint_id = 4;
+  string remote_agent_id = 5;
+  string display_name = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message SpaceResource {
+  string resource_id = 1;
+  string space_id = 2;
+  string uri = 3;
+  // "folder" or "url"
+  string type = 4;
+  string label = 5;
+  google.protobuf.Timestamp added_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Agent assignment — how agents are enrolled in spaces
+// ---------------------------------------------------------------------------
+
+message SpaceAgentAssignment {
+  string space_id = 1;
+  string agent_id = 2;
+  string profile_id = 3;
+  // Override the profile's default security scope for this space.
+  AgentSecurityScope security_scope = 4;
+  // Role within this space.
+  CoordinatorRole role = 5;
+  // Turn order position (for sequential strategies).
+  int32 turn_order = 6;
+  // Whether this is the primary agent (for primary_only strategy).
+  bool is_primary = 7;
+  google.protobuf.Timestamp assigned_at = 8;
+  string spawn_context = 9;
+  google.protobuf.Struct context_overrides = 10;
+}
+
+// ---------------------------------------------------------------------------
+// Turn model configuration — detailed settings per strategy
+// ---------------------------------------------------------------------------
+
+message TurnModelConfig {
+  TurnModelStrategy strategy = 1;
+
+  // For DEBATE_SYNTHESIS:
+  int32 debate_rounds = 2;           // Number of rounds before synthesis
+  string synthesizer_agent_id = 3;   // Who synthesizes (empty = moderator)
+
+  // For PARALLEL_RACE:
+  int32 race_timeout_seconds = 4;    // How long to wait for all agents
+
+  // For ROUND_ROBIN:
+  int32 max_rounds = 5;              // Max full rotations (0 = unlimited)
+
+  // For ADAPTIVE_AUTO:
+  string adaptation_policy = 6;      // e.g. "cost_optimize", "quality_first"
+
+  // For SEQUENTIAL_ALL:
+  bool stop_on_first_failure = 7;    // Whether one agent failing stops the chain
+}

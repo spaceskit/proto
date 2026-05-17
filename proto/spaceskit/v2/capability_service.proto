@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package spaceskit.v2;
 
+import "spaceskit/v2/capability_types.proto";
 import "spaceskit/v2/common.proto";
 
 service CapabilityService {

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+
+// ---------------------------------------------------------------------------
+// Capability model
+// ---------------------------------------------------------------------------
+
+message CapabilityScope {
+  string space_template_id = 1;
+  repeated string agent_ids = 2;
+}
+
+message CapabilityManifest {
+  string capability_id = 1;
+  string name = 2;
+  string description = 3;
+  string version = 4;
+  repeated string tags = 5;
+  bool requires_workspace = 6;
+  google.protobuf.Struct input_schema = 7;
+  CapabilityScope scope = 8;
+}
+
+message CapabilityRecord {
+  string api_version = 1;
+  CapabilityManifest manifest = 2;
+  CapabilityApprovalStatus approval_status = 3;
+  string approved_by = 4;
+  string rejection_reason = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}

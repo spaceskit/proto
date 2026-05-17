@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/security_types.proto";
+
+// ---------------------------------------------------------------------------
+// Profile & personality enums
+// ---------------------------------------------------------------------------
+
+enum ProfileStatus {
+  PROFILE_STATUS_UNSPECIFIED = 0;
+  PROFILE_STATUS_ACTIVE = 1;
+  PROFILE_STATUS_ARCHIVED = 2;
+}
+
+enum InsightStatus {
+  INSIGHT_STATUS_UNSPECIFIED = 0;
+  INSIGHT_STATUS_PROPOSED = 1;    // Auto-generated from experience
+  INSIGHT_STATUS_ACCEPTED = 2;    // Human approved → new revision created
+  INSIGHT_STATUS_REJECTED = 3;    // Human discarded
+  INSIGHT_STATUS_SUPERSEDED = 4;  // Replaced by a newer insight
+}
+
+// ---------------------------------------------------------------------------
+// Agent profile model
+//
+// A profile defines who an agent *is*: its personality, default skills,
+// preferred model, and security posture. Profiles are versioned through
+// revisions. Experiences propose profile changes via PersonalityInsight;
+// the human reviews and accepts/rejects them. This closes the growth loop:
+//   Space → Experience → Insight → Profile revision → better agent.
+// ---------------------------------------------------------------------------
+
+message AgentProfile {
+  string profile_id = 1;
+  string name = 2;
+  string description = 3;
+
+  // The core personality prompt injected into the agent's system context.
+  string personality_prompt = 4;
+
+  // Default skills attached to this profile.
+  repeated string default_skill_ids = 5;
+  // Default actions this profile can execute.
+  repeated string default_action_ids = 6;
+
+  // Provider preference.
+  string provider_hint = 7;
+  reserved 8;
+
+  // Whether this profile can act as a space moderator.
+  bool can_moderate = 9;
+  // Whether this is the default profile for new spaces.
+  bool is_default = 10;
+
+  // Security scope template: when this agent joins a space,
+  // these are the default permissions it starts with.
+  AgentSecurityScope default_security_scope = 11;
+
+  // Revision management.
+  int32 active_revision = 12;
+  ProfileStatus status = 13;
+
+  // Source attribution (e.g. "user", "import", "sync").
+  string source = 14;
+
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  // Multi-model config. preferred_models[0] is the single-model source.
+  ModelConfig model_config = 17;
+}
+
+message AgentProfileRevision {
+  string profile_id = 1;
+  int32 revision = 2;
+
+  string name = 3;
+  string description = 4;
+  string personality_prompt = 5;
+  repeated string default_skill_ids = 6;
+  repeated string default_action_ids = 7;
+  string provider_hint = 8;
+  reserved 9;
+  bool can_moderate = 10;
+  bool is_default = 11;
+  AgentSecurityScope default_security_scope = 12;
+  string source = 13;
+
+  // What triggered this revision (e.g. "manual edit", "insight:ins_abc123").
+  string change_reason = 14;
+
+  google.protobuf.Timestamp created_at = 15;
+  // Multi-model config. preferred_models[0] is the single-model source.
+  ModelConfig model_config = 16;
+}
+
+message ModelConfig {
+  repeated string preferred_models = 1;
+  repeated string fallback_models = 2;
+  google.protobuf.Struct constraints = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Personality insight — the bridge between experiences and profiles
+//
+// When a space session ends and an Experience is generated, the gateway
+// can produce PersonalityInsights for each agent that participated.
+// Each insight proposes a specific change to the agent's profile.
+// The human reviews the insight and accepts, rejects, or edits it.
+// Accepted insights become new profile revisions.
+// ---------------------------------------------------------------------------
+
+message PersonalityInsight {
+  string insight_id = 1;
+  // The experience that produced this insight.
+  string experience_id = 2;
+  // The space where the experience occurred.
+  string space_id = 3;
+  // The profile this insight applies to.
+  string profile_id = 4;
+  // The revision the insight was generated against.
+  int32 base_revision = 5;
+
+  // The proposed patch to the personality prompt.
+  // This is a human-readable diff or replacement suggestion.
+  string proposed_prompt_delta = 6;
+  // Skills to add or remove.
+  repeated string add_skill_ids = 7;
+  repeated string remove_skill_ids = 8;
+  // Actions to add or remove.
+  repeated string add_action_ids = 9;
+  repeated string remove_action_ids = 10;
+
+  // Why this change is being proposed.
+  string rationale = 11;
+  // Confidence score: how strongly the gateway recommends this change.
+  double confidence = 12;
+
+  InsightStatus status = 13;
+  // If accepted, which revision was created.
+  int32 applied_revision = 14;
+  // If the human edited the insight before applying.
+  string human_edit_note = 15;
+
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+// ---------------------------------------------------------------------------
+// Moderator profile — specialized profile for space moderation
+// ---------------------------------------------------------------------------
+
+message ModeratorProfile {
+  string profile_id = 1;
+  string name = 2;
+  string description = 3;
+  // The moderation prompt (distinct from personality prompt).
+  string moderation_prompt = 4;
+  repeated string default_skill_ids = 5;
+
+  // Moderation policy.
+  ModeratorPolicy policy = 6;
+
+  bool is_default = 7;
+  ProfileStatus status = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ModeratorPolicy {
+  bool enforce_turn_order = 1;
+  bool require_final_synthesis = 2;
+  bool allow_direct_agent_dialogue = 3;
+  int32 max_consecutive_turns_per_agent = 4;
+  bool intervene_on_budget_threshold = 5;
+  bool intervene_on_permission_denial = 6;
+  bool intervene_on_security_violation = 7;
+}

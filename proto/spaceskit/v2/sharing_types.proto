@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Zero-trust space sharing model
+// ---------------------------------------------------------------------------
+
+enum SpaceShareAccessMode {
+  SPACE_SHARE_ACCESS_MODE_UNSPECIFIED = 0;
+  SPACE_SHARE_ACCESS_MODE_READ_ONLY = 1;
+  SPACE_SHARE_ACCESS_MODE_COLLABORATOR = 2;
+}
+
+enum SpaceShareInviteStatus {
+  SPACE_SHARE_INVITE_STATUS_UNSPECIFIED = 0;
+  SPACE_SHARE_INVITE_STATUS_ACTIVE = 1;
+  SPACE_SHARE_INVITE_STATUS_USED = 2;
+  SPACE_SHARE_INVITE_STATUS_REVOKED = 3;
+  SPACE_SHARE_INVITE_STATUS_EXPIRED = 4;
+}
+
+enum SpaceParticipantStatus {
+  SPACE_PARTICIPANT_STATUS_UNSPECIFIED = 0;
+  SPACE_PARTICIPANT_STATUS_ACTIVE = 1;
+  SPACE_PARTICIPANT_STATUS_REVOKED = 2;
+}
+
+enum DeviceIdentityStatus {
+  DEVICE_IDENTITY_STATUS_UNSPECIFIED = 0;
+  DEVICE_IDENTITY_STATUS_ACTIVE = 1;
+  DEVICE_IDENTITY_STATUS_REVOKED = 2;
+  DEVICE_IDENTITY_STATUS_ROTATED = 3;
+}
+
+message DeviceIdentity {
+  string device_id = 1;
+  string public_key = 2;
+  string platform = 3;
+  string key_version = 4;
+  DeviceIdentityStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  string principal_id = 9;
+  google.protobuf.Timestamp revoked_at = 10;
+}
+
+message DeviceAuthProof {
+  string device_id = 1;
+  string signature = 2;
+  string nonce = 3;
+  string key_version = 4;
+}
+
+message SpaceShareInvite {
+  string invite_id = 1;
+  string space_id = 2;
+  string issued_by_principal_id = 3;
+  SpaceShareAccessMode mode = 4;
+  SpaceShareInviteStatus status = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  // Present only on invite-creation response.
+  string invite_token = 9;
+}
+
+message SpaceParticipant {
+  string participant_id = 1;
+  string space_id = 2;
+  string principal_id = 3;
+  string principal_type = 4;
+  SpaceShareAccessMode mode = 5;
+  SpaceParticipantStatus status = 6;
+  string joined_via_invite_id = 7;
+  DeviceIdentity device = 8;
+  google.protobuf.Timestamp joined_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp revoked_at = 11;
+}

@@ -1,0 +1,201 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/sharing_types.proto";
+import "spaceskit/v2/space_types.proto";
+
+enum SpaceOpenWorkspaceStatus {
+  SPACE_OPEN_WORKSPACE_STATUS_UNSPECIFIED = 0;
+  SPACE_OPEN_WORKSPACE_STATUS_OPENED_EXISTING = 1;
+  SPACE_OPEN_WORKSPACE_STATUS_CREATED_NEW = 2;
+  SPACE_OPEN_WORKSPACE_STATUS_UNBOUND = 3;
+  SPACE_OPEN_WORKSPACE_STATUS_CONFLICT = 4;
+}
+
+message SpaceOpenWorkspaceConflict {
+  string reason = 1;
+  string message = 2;
+  string workspace_root = 3;
+  string metadata_path = 4;
+  string existing_space_id = 5;
+  string existing_space_uid = 6;
+  string existing_workspace_root = 7;
+  string requested_space_id = 8;
+  string requested_space_uid = 9;
+}
+
+message SpaceOpenWorkspaceResult {
+  SpaceOpenWorkspaceStatus status = 1;
+  string workspace_root = 2;
+  bool git_repo_detected = 3;
+  bool has_space_metadata = 4;
+  SpaceState space = 5;
+  SpaceWorkspaceBinding workspace = 6;
+  SpaceOpenWorkspaceConflict conflict = 7;
+}
+
+message OpenWorkspaceRequest {
+  string api_version = 1;
+  string workspace_root = 2;
+}
+
+message OpenWorkspaceResponse {
+  string api_version = 1;
+  SpaceOpenWorkspaceResult result = 2;
+}
+
+message SetModeratorProfileRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string moderator_profile_id = 3;
+  string idempotency_key = 4;
+}
+
+message SetModeratorProfileResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message SpaceLink {
+  string source_space_id = 1;
+  string target_space_id = 2;
+  string mode = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message LinkSpacesRequest {
+  string api_version = 1;
+  string source_space_id = 2;
+  string target_space_id = 3;
+  string mode = 4;
+  string idempotency_key = 5;
+}
+
+message LinkSpacesResponse {
+  string api_version = 1;
+  SpaceLink link = 2;
+}
+
+message UnlinkSpacesRequest {
+  string api_version = 1;
+  string source_space_id = 2;
+  string target_space_id = 3;
+  string idempotency_key = 4;
+}
+
+message UnlinkSpacesResponse {
+  string api_version = 1;
+  bool removed = 2;
+  string source_space_id = 3;
+  string target_space_id = 4;
+}
+
+enum SharedContextTransferStatus {
+  SHARED_CONTEXT_TRANSFER_STATUS_UNSPECIFIED = 0;
+  SHARED_CONTEXT_TRANSFER_STATUS_SHARED = 1;
+  SHARED_CONTEXT_TRANSFER_STATUS_IMPORTED = 2;
+  SHARED_CONTEXT_TRANSFER_STATUS_DENIED = 3;
+}
+
+message SharedContextRef {
+  string transfer_id = 1;
+  string source_space_id = 2;
+  string target_space_id = 3;
+  string artifact_id = 4;
+  SharedContextTransferStatus status = 5;
+  string denial_reason = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp applied_at = 8;
+}
+
+message ShareSpaceContextRequest {
+  string api_version = 1;
+  string source_space_id = 2;
+  string target_space_id = 3;
+  string artifact_id = 4;
+  string idempotency_key = 5;
+}
+
+message ShareSpaceContextResponse {
+  string api_version = 1;
+  SharedContextRef transfer = 2;
+}
+
+message PullSharedContextRequest {
+  string api_version = 1;
+  string source_space_id = 2;
+  string target_space_id = 3;
+  int32 limit = 4;
+  string idempotency_key = 5;
+}
+
+message ImportedArtifactRef {
+  string source_artifact_id = 1;
+  string imported_artifact_id = 2;
+}
+
+message SharedContextDenied {
+  string transfer_id = 1;
+  string reason = 2;
+}
+
+message PullSharedContextResponse {
+  string api_version = 1;
+  repeated ImportedArtifactRef imported_artifacts = 2;
+  repeated SharedContextDenied denied = 3;
+}
+
+message CreateShareInviteRequest {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceShareAccessMode mode = 3;
+  int32 expires_in_seconds = 4;
+}
+
+message CreateShareInviteResponse {
+  string api_version = 1;
+  SpaceShareInvite invite = 2;
+}
+
+message JoinShareInviteRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string invite_token = 3;
+  DeviceIdentity device = 4;
+  DeviceAuthProof device_proof = 5;
+}
+
+message JoinShareInviteResponse {
+  string api_version = 1;
+  SpaceParticipant participant = 2;
+}
+
+message RevokeShareAccessRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string invite_id = 3;
+  string participant_id = 4;
+}
+
+message RevokeShareAccessResponse {
+  string api_version = 1;
+  string space_id = 2;
+  string invite_id = 3;
+  string participant_id = 4;
+  bool revoked_invite = 5;
+  bool revoked_participant = 6;
+}
+
+message ListSpaceParticipantsRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message ListSpaceParticipantsResponse {
+  string api_version = 1;
+  string space_id = 2;
+  repeated SpaceParticipant participants = 3;
+}

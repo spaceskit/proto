@@ -2,7 +2,8 @@ syntax = "proto3";
 
 package spaceskit.v2;
 
-import "spaceskit/v2/common.proto";
+import "spaceskit/v2/artifact_types.proto";
+import "spaceskit/v2/runtime_ledger_types.proto";
 
 service RuntimeService {
   rpc StartRun(StartRunRequest) returns (StartRunResponse);

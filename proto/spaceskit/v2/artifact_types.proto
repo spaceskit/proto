@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/security_types.proto";
+
+// Provenance of an artifact — tracks where it came from and
+// whether it's been human-reviewed. Used to enforce trust
+// boundaries between spaces.
+message ArtifactProvenance {
+  string artifact_id = 1;
+  TrustLevel trust_level = 2;
+  // The space that produced this artifact.
+  string source_space_id = 3;
+  // The agent that produced it (empty if human-created).
+  string source_agent_id = 4;
+  // The resource (gateway) it originated from.
+  string source_resource_id = 5;
+  // Whether a human has reviewed this artifact.
+  bool human_reviewed = 6;
+  string reviewed_by = 7;
+  google.protobuf.Timestamp reviewed_at = 8;
+}
+
+message ContentPart {
+  string type = 1;               // "text", "data", "file"
+  string mime_type = 2;
+  string text = 3;
+  string data = 4;
+  string uri = 5;
+  string title = 6;
+  string preview_text = 7;
+  google.protobuf.Struct metadata = 8;
+}
+
+message ContentEnvelope {
+  int32 schema_version = 1;
+  string kind = 2;               // "rich_content"
+  string primary_mime_type = 3;
+  string preview_text = 4;
+  bool supports_inline = 5;
+  repeated ContentPart parts = 6;
+  google.protobuf.Struct metadata = 7;
+}
+
+message Artifact {
+  string artifact_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string artifact_type = 5;
+  string uri = 6;
+  string label = 7;
+  string mime_type = 8;
+  int64 size_bytes = 9;
+  ArtifactProvenance provenance = 10;
+  google.protobuf.Timestamp created_at = 11;
+}

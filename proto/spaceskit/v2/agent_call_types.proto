@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+
+// ---------------------------------------------------------------------------
+// Agent identity & inter-agent calls
+// ---------------------------------------------------------------------------
+
+message AgentIdentityPackRef {
+  string space_id = 1;
+  string agent_id = 2;
+  string agent_session_id = 3;
+  string root_path = 4;
+  string soul_path = 5;
+  string agent_path = 6;
+  string context_path = 7;
+  string voice_path = 8;
+  string capabilities_path = 9;
+}
+
+message AgentCallHandle {
+  string call_id = 1;
+  AgentCallMode mode = 2;
+  AgentCallStatus status = 3;
+  string space_id = 4;
+  string source_agent_id = 5;
+  string target_agent_id = 6;
+  string lineage_id = 7;
+  int32 hop_count = 8;
+  string error_message = 9;
+  string result_text = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}

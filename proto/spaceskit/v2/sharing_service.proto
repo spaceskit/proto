@@ -3,7 +3,7 @@ syntax = "proto3";
 package spaceskit.v2;
 
 import "google/protobuf/timestamp.proto";
-import "spaceskit/v2/common.proto";
+import "spaceskit/v2/sharing_types.proto";
 
 // SharingService — V2 invite issuance and join surface.
 //
@@ -47,8 +47,7 @@ message CreateInviteV2Request {
 message CreateInviteV2Response {
   string api_version = 1;
   SpaceInviteLinkV2 invite = 2;
-  // Server-side invite metadata (matches the legacy SpaceShareInvite shape
-  // but is created via this v2 path).
+  // Server-side invite metadata created via the v2 path.
   SpaceShareInvite share_invite = 3;
   google.protobuf.Timestamp expires_at = 4;
 }

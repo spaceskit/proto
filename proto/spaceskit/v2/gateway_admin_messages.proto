@@ -1,0 +1,247 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/sharing_types.proto";
+import "spaceskit/v2/space_types.proto";
+
+message GatewayWorkspaceDefaults {
+  string space_home_root = 1;
+  google.protobuf.Timestamp updated_at = 2;
+}
+
+enum GatewayExternalConnectivityMode {
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_MODE_TAILSCALE = 2;
+}
+
+enum GatewayExternalConnectivityState {
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_UNSUPPORTED = 2;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_MISSING_DEPENDENCY = 3;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_LOGGED_OUT = 4;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_SERVE_MISSING = 5;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_READY = 6;
+  GATEWAY_EXTERNAL_CONNECTIVITY_STATE_ERROR = 7;
+}
+
+enum GatewayExternalConnectivityFunnelState {
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_UNSPECIFIED = 0;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_DISABLED = 1;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_UNAVAILABLE = 2;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_NOT_CONFIGURED = 3;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_READY = 4;
+  GATEWAY_EXTERNAL_CONNECTIVITY_FUNNEL_STATE_ERROR = 5;
+}
+
+message GatewayExternalConnectivitySettings {
+  GatewayExternalConnectivityMode mode = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  optional bool funnel_enabled = 3;
+}
+
+message GatewayExternalConnectivityAdvertisedEndpoint {
+  string provider = 1;
+  string label = 2;
+  string host = 3;
+  uint32 port = 4;
+  string websocket_url = 5;
+  string health_url = 6;
+}
+
+message GatewayExternalConnectivityTailscaleStatus {
+  bool cli_available = 1;
+  optional string version = 2;
+  optional string backend_state = 3;
+  repeated string health = 4;
+  optional string host_name = 5;
+  optional string dns_name = 6;
+  optional string magic_dns_suffix = 7;
+  repeated string tailscale_ips = 8;
+  bool serve_configured = 9;
+  optional string serve_target = 10;
+  optional uint32 serve_port = 11;
+}
+
+message GatewayExternalConnectivityFunnelStatus {
+  GatewayExternalConnectivityFunnelState state = 1;
+  bool funnel_configured = 2;
+  optional string funnel_url = 3;
+  repeated string exposed_paths = 4;
+  optional string summary = 5;
+  optional string remediation = 6;
+}
+
+message GatewayExternalConnectivityStatus {
+  GatewayExternalConnectivityState state = 1;
+  string summary = 2;
+  optional string remediation = 3;
+  repeated GatewayExternalConnectivityAdvertisedEndpoint advertised_endpoints = 4;
+  optional GatewayExternalConnectivityTailscaleStatus tailscale_status = 5;
+  optional GatewayExternalConnectivityFunnelStatus funnel_status = 6;
+}
+
+message GatewayPolicy {
+  repeated string allowed_capability_types = 1;
+  repeated string denied_capability_types = 2;
+  repeated string allowed_skill_ids = 3;
+  repeated string denied_skill_ids = 4;
+  google.protobuf.Struct global_flags = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message GatewayStringListPatch {
+  repeated string values = 1;
+}
+
+message GetGatewayPolicyRequest {
+  string api_version = 1;
+}
+
+message GetGatewayPolicyResponse {
+  string api_version = 1;
+  GatewayPolicy policy = 2;
+}
+
+message UpdateGatewayPolicyRequest {
+  string api_version = 1;
+  GatewayStringListPatch allowed_capability_types = 2;
+  GatewayStringListPatch denied_capability_types = 3;
+  GatewayStringListPatch allowed_skill_ids = 4;
+  GatewayStringListPatch denied_skill_ids = 5;
+  google.protobuf.Struct global_flags = 6;
+  // Optional explicit patch paths for additive/clear updates.
+  google.protobuf.FieldMask update_mask = 7;
+}
+
+message UpdateGatewayPolicyResponse {
+  string api_version = 1;
+  GatewayPolicy policy = 2;
+}
+
+message GetWorkspaceDefaultsRequest {
+  string api_version = 1;
+}
+
+message GetWorkspaceDefaultsResponse {
+  string api_version = 1;
+  GatewayWorkspaceDefaults defaults = 2;
+}
+
+message SetWorkspaceDefaultsRequest {
+  string api_version = 1;
+  optional string space_home_root = 2;
+}
+
+message SetWorkspaceDefaultsResponse {
+  string api_version = 1;
+  GatewayWorkspaceDefaults defaults = 2;
+}
+
+message GetMemoryDefaultsRequest {
+  string api_version = 1;
+}
+
+message GetMemoryDefaultsResponse {
+  string api_version = 1;
+  GatewayMemoryDefaults defaults = 2;
+}
+
+message SetMemoryDefaultsRequest {
+  string api_version = 1;
+  SpaceExperienceCaptureMode default_experience_capture = 2;
+  SpacePrivacyMode default_space_privacy_mode = 3;
+}
+
+message SetMemoryDefaultsResponse {
+  string api_version = 1;
+  GatewayMemoryDefaults defaults = 2;
+}
+
+message GetExternalConnectivityRequest {
+  string api_version = 1;
+}
+
+message GetExternalConnectivityResponse {
+  string api_version = 1;
+  GatewayExternalConnectivitySettings settings = 2;
+  GatewayExternalConnectivityStatus status = 3;
+}
+
+message SetExternalConnectivityRequest {
+  string api_version = 1;
+  GatewayExternalConnectivityMode mode = 2;
+  optional bool funnel_enabled = 3;
+}
+
+message SetExternalConnectivityResponse {
+  string api_version = 1;
+  GatewayExternalConnectivitySettings settings = 2;
+  GatewayExternalConnectivityStatus status = 3;
+}
+
+message FactoryResetGatewayRequest {
+  string api_version = 1;
+  string confirmation = 2;
+}
+
+message FactoryResetGatewayResponse {
+  string api_version = 1;
+  string gateway_id = 2;
+  string gateway_uuid = 3;
+  google.protobuf.Timestamp reset_at = 4;
+  uint32 tables_cleared = 5;
+  uint64 rows_deleted = 6;
+}
+
+message RegisterDeviceRequest {
+  string api_version = 1;
+  string device_id = 2;
+  string public_key = 3;
+  string platform = 4;
+}
+
+message RegisterDeviceResponse {
+  string api_version = 1;
+  DeviceIdentity device = 2;
+  bool created = 3;
+}
+
+message RotateDeviceKeyRequest {
+  string api_version = 1;
+  string device_id = 2;
+  string next_public_key = 3;
+  string platform = 4;
+}
+
+message RotateDeviceKeyResponse {
+  string api_version = 1;
+  DeviceIdentity device = 2;
+}
+
+message RevokeDeviceRequest {
+  string api_version = 1;
+  string device_id = 2;
+}
+
+message RevokeDeviceResponse {
+  string api_version = 1;
+  string device_id = 2;
+  bool revoked = 3;
+  DeviceIdentity device = 4;
+}
+
+message ListDevicesRequest {
+  string api_version = 1;
+  bool include_revoked = 2;
+}
+
+message ListDevicesResponse {
+  string api_version = 1;
+  repeated DeviceIdentity devices = 2;
+}

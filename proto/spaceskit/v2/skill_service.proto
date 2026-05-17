@@ -3,6 +3,7 @@ syntax = "proto3";
 package spaceskit.v2;
 
 import "spaceskit/v2/common.proto";
+import "spaceskit/v2/skill_types.proto";
 
 // SkillService manages declarative skills and executable actions.
 //

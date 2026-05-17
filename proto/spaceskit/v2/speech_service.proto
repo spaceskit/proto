@@ -4,6 +4,7 @@ package spaceskit.v2;
 
 import "spaceskit/v2/common.proto";
 import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/voice_types.proto";
 
 service SpeechService {
   rpc StreamSpeechSession(stream StreamSpeechSessionRequest) returns (stream StreamSpeechSessionResponse);

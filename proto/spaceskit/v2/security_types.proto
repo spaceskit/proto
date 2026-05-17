@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+
+// ---------------------------------------------------------------------------
+// Security model
+//
+// Security is the enforcement mechanism for the manifesto's principle:
+// "the human stays in the loop as coordinator." Agents operate within
+// explicit permission fences. The default is restrictive. Loosening
+// requires deliberate human action.
+// ---------------------------------------------------------------------------
+
+enum SecurityVerdict {
+  SECURITY_VERDICT_UNSPECIFIED = 0;
+  SECURITY_VERDICT_ALLOW = 1;       // Action permitted
+  SECURITY_VERDICT_DENY = 2;        // Action blocked
+  SECURITY_VERDICT_ASK_HUMAN = 3;   // Requires human approval
+  SECURITY_VERDICT_LOG_ONLY = 4;    // Allowed but flagged for audit
+}
+
+enum TrustLevel {
+  TRUST_LEVEL_UNSPECIFIED = 0;
+  TRUST_LEVEL_UNTRUSTED = 1;    // Cross-space artifacts, external input
+  TRUST_LEVEL_AGENT = 2;        // Agent-produced output
+  TRUST_LEVEL_REVIEWED = 3;     // Human-reviewed content
+  TRUST_LEVEL_SYSTEM = 4;       // Gateway-internal, fully trusted
+}
+
+// Per-agent security scope — what an agent can and cannot do.
+// Assigned when an agent is added to a space. The space ceiling
+// is the union of all agent scopes (most restrictive wins globally).
+message AgentSecurityScope {
+  string agent_id = 1;
+  RuntimePermissionMode permission_mode = 2;
+
+  // Explicit capability allowlist. If non-empty, only these
+  // capabilities can be invoked. Empty = all approved capabilities.
+  repeated string allowed_capabilities = 3;
+
+  // Filesystem scope: "" = no access, "/" = full, "/path" = scoped.
+  string filesystem_scope = 4;
+  bool allow_network = 5;
+  bool allow_shell = 6;
+  repeated string command_allowlist = 7;
+
+  // Max tokens this agent can consume per turn.
+  int32 max_tokens_per_turn = 8;
+  // Max tool calls per turn (prevents runaway loops).
+  int32 max_tool_calls_per_turn = 9;
+
+  // Whether this agent's outputs require human review before
+  // being passed to capabilities or other agents.
+  bool require_output_review = 10;
+}
+
+// Security policy applied at the space or system level.
+message SecurityPolicy {
+  string policy_id = 1;
+
+  // Default permission mode for new agents in this space.
+  RuntimePermissionMode default_permission_mode = 2;
+
+  // What to do when an agent tries something outside its scope.
+  SecurityVerdict out_of_scope_verdict = 3;
+
+  // Output inspection: if true, the gateway runs a policy check
+  // on agent output before it reaches any capability or tool.
+  bool inspect_agent_output = 4;
+
+  // Maximum inter-agent call depth (prevents infinite delegation).
+  int32 max_call_depth = 5;
+
+  // Whether cross-space artifact access requires human approval.
+  bool cross_space_requires_approval = 6;
+
+  // Audit: if true, all capability invocations are logged.
+  // (Should almost always be true.)
+  bool audit_capability_invocations = 7;
+
+  // Redaction mode for audit logs.
+  string redaction_mode = 8;
+
+  google.protobuf.Timestamp updated_at = 9;
+}

@@ -1,0 +1,445 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/common.proto";
+import "spaceskit/v2/experience_types.proto";
+import "spaceskit/v2/security_types.proto";
+import "spaceskit/v2/space_types.proto";
+
+message CreateSpaceRequest {
+  string api_version = 1;
+  string name = 2;
+  string goal = 3;
+  TurnModelStrategy turn_model = 4;
+  BehaviorProfile behavior_profile = 5;
+  SpaceContextBinding context_binding = 6;
+  VoicePolicy voice_policy = 7;
+  string template_id = 8;
+  string resource_id = 9;
+  // Initial agent assignments (profiles + roles).
+  repeated SpaceAgentAssignment initial_agents = 10;
+  // Detailed turn model config (optional; defaults based on strategy).
+  TurnModelConfig turn_model_config = 11;
+  // Security policy (optional; uses system default if not set).
+  SecurityPolicy security_policy = 12;
+  // Moderator profile to use (optional).
+  string moderator_profile_id = 13;
+  string idempotency_key = 14;
+  optional string workspace_root = 15;
+  ThinkingCapturePolicy thinking_capture_policy = 16;
+  ConversationTopology conversation_topology = 17;
+  string prompt_pack_id = 18;
+  SpaceMemoryPolicy memory_policy = 19;
+}
+
+message CreateSpaceResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message GetSpaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message GetSpaceResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message ListSpacesRequest {
+  string api_version = 1;
+  repeated SpaceStatus statuses = 2;
+  string resource_id = 3;
+  int32 limit = 4;
+}
+
+message ListSpacesResponse {
+  string api_version = 1;
+  repeated SpaceState spaces = 2;
+}
+
+message SetSpaceContextBindingRequest {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceContextBinding context_binding = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceContextBindingResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message SetSpaceBehaviorProfileRequest {
+  string api_version = 1;
+  string space_id = 2;
+  BehaviorProfile behavior_profile = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceBehaviorProfileResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message SetSpaceVoicePolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  VoicePolicy voice_policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceVoicePolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message SetThinkingCapturePolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  ThinkingCapturePolicy thinking_capture_policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetThinkingCapturePolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message GetSpaceMemoryPolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message GetSpaceMemoryPolicyResponse {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceMemoryPolicy memory_policy = 3;
+}
+
+message SetSpaceMemoryPolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceMemoryPolicy memory_policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceMemoryPolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message EndIncognitoSessionRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message EndIncognitoSessionResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+  bool ended = 3;
+  google.protobuf.Timestamp purged_at = 4;
+  string session_id = 5;
+  string reason = 6;
+}
+
+message ArchiveSpaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string reason = 3;
+  // Generate an experience before archiving.
+  bool generate_experience = 4;
+  string idempotency_key = 5;
+}
+
+message ArchiveSpaceResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+  // If generate_experience was true, the created experience.
+  Experience experience = 3;
+}
+
+message DeleteSpaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string reason = 3;
+  string idempotency_key = 4;
+}
+
+message DeleteSpaceResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Turn model & security policy configuration
+// ---------------------------------------------------------------------------
+
+message SetTurnModelConfigRequest {
+  string api_version = 1;
+  string space_id = 2;
+  TurnModelConfig config = 3;
+  string idempotency_key = 4;
+}
+
+message SetTurnModelConfigResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message SetSecurityPolicyRequest {
+  string api_version = 1;
+  string space_id = 2;
+  SecurityPolicy policy = 3;
+  string idempotency_key = 4;
+}
+
+message SetSecurityPolicyResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Agent provisioning — enrolling agents in spaces
+// ---------------------------------------------------------------------------
+
+message AddAgentRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string agent_id = 3;
+  string profile_id = 4;
+  // Override the profile's default security scope (optional).
+  AgentSecurityScope security_scope_override = 5;
+  CoordinatorRole role = 6;
+  int32 turn_order = 7;
+  bool is_primary = 8;
+  string idempotency_key = 9;
+  string spawn_context = 10;
+  google.protobuf.Struct context_overrides = 11;
+}
+
+message AddAgentResponse {
+  string api_version = 1;
+  SpaceAgentAssignment assignment = 2;
+  SpaceState space = 3;
+}
+
+message RemoveAgentRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string agent_id = 3;
+  string idempotency_key = 4;
+}
+
+message RemoveAgentResponse {
+  string api_version = 1;
+  SpaceState space = 2;
+}
+
+message UpdateAgentAssignmentRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string agent_id = 3;
+  // Fields to update.
+  optional string profile_id = 4;
+  AgentSecurityScope security_scope = 5;
+  optional CoordinatorRole role = 6;
+  optional int32 turn_order = 7;
+  optional bool is_primary = 8;
+  string idempotency_key = 9;
+  // Optional explicit patch paths for clear/default updates.
+  google.protobuf.FieldMask update_mask = 10;
+  optional string spawn_context = 11;
+  google.protobuf.Struct context_overrides = 12;
+}
+
+message UpdateAgentAssignmentResponse {
+  string api_version = 1;
+  SpaceAgentAssignment assignment = 2;
+  SpaceState space = 3;
+}
+
+message ListAgentAssignmentsRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message ListAgentAssignmentsResponse {
+  string api_version = 1;
+  repeated SpaceAgentAssignment assignments = 2;
+}
+
+message GetMcpEndpointRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message GetMcpEndpointResponse {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceMcpEndpointConfig endpoint = 3;
+  bool fallback_enabled = 4;
+}
+
+message SetMcpEndpointRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string transport = 3;
+  string endpoint = 4;
+  repeated string args = 5;
+  string secret_ref = 6;
+  bool enabled = 7;
+}
+
+message SetMcpEndpointResponse {
+  string api_version = 1;
+  SpaceMcpEndpointConfig endpoint = 2;
+}
+
+message ClearMcpEndpointRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message ClearMcpEndpointResponse {
+  string api_version = 1;
+  string space_id = 2;
+  bool cleared = 3;
+}
+
+message DiscoverMcpAgentsRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message DiscoverMcpAgentsResponse {
+  string api_version = 1;
+  string space_id = 2;
+  string endpoint_id = 3;
+  repeated McpDiscoveredAgent agents = 4;
+}
+
+message ApproveMcpAgentRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string remote_agent_id = 3;
+  string display_name = 4;
+  string agent_id = 5;
+  string profile_id = 6;
+}
+
+message ApproveMcpAgentResponse {
+  string api_version = 1;
+  string space_id = 2;
+  SpaceAgentAssignment assignment = 3;
+  ExternalAgentRuntimeBinding binding = 4;
+}
+
+message AddSpaceSkillRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string skill_id = 3;
+  string idempotency_key = 4;
+}
+
+message AddSpaceSkillResponse {
+  string api_version = 1;
+  string space_id = 2;
+  string skill_id = 3;
+  repeated string skill_ids = 4;
+  SpaceState space = 5;
+}
+
+message RemoveSpaceSkillRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string skill_id = 3;
+  string idempotency_key = 4;
+}
+
+message RemoveSpaceSkillResponse {
+  string api_version = 1;
+  bool removed = 2;
+  string space_id = 3;
+  string skill_id = 4;
+  repeated string skill_ids = 5;
+  SpaceState space = 6;
+}
+
+message ListSpaceSkillsRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message ListSpaceSkillsResponse {
+  string api_version = 1;
+  string space_id = 2;
+  repeated string skill_ids = 3;
+}
+
+message AddSpaceResourceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string resource_id = 3;
+  string uri = 4;
+  string type = 5;
+  string label = 6;
+  string idempotency_key = 7;
+}
+
+message AddSpaceResourceResponse {
+  string api_version = 1;
+  SpaceResource resource = 2;
+}
+
+message RemoveSpaceResourceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  string resource_id = 3;
+  string idempotency_key = 4;
+}
+
+message RemoveSpaceResourceResponse {
+  string api_version = 1;
+  bool removed = 2;
+  string space_id = 3;
+  string resource_id = 4;
+}
+
+message ListSpaceResourcesRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message ListSpaceResourcesResponse {
+  string api_version = 1;
+  string space_id = 2;
+  repeated SpaceResource resources = 3;
+}
+
+message GetSpaceWorkspaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+}
+
+message GetSpaceWorkspaceResponse {
+  string api_version = 1;
+  SpaceWorkspaceBinding workspace = 2;
+}
+
+message SetSpaceWorkspaceRequest {
+  string api_version = 1;
+  string space_id = 2;
+  optional string workspace_root = 3;
+  string idempotency_key = 4;
+}
+
+message SetSpaceWorkspaceResponse {
+  string api_version = 1;
+  SpaceWorkspaceBinding workspace = 2;
+}

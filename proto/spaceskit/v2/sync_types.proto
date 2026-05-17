@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Gateway sync model
+//
+// Gateways can exchange resources (skills, actions, experiences,
+// profiles) via a pull model. The requesting gateway asks for
+// specific resources; the responding gateway decides what to share.
+// ---------------------------------------------------------------------------
+
+enum SyncResourceType {
+  SYNC_RESOURCE_TYPE_UNSPECIFIED = 0;
+  SYNC_RESOURCE_TYPE_SKILL = 1;
+  SYNC_RESOURCE_TYPE_ACTION = 2;
+  SYNC_RESOURCE_TYPE_EXPERIENCE = 3;
+  SYNC_RESOURCE_TYPE_PROFILE = 4;
+}
+
+message SyncResourceRef {
+  SyncResourceType type = 1;
+  string resource_id = 2;          // Which gateway it belongs to
+  string id = 3;                   // The skill/action/experience/profile ID
+  string version_hash = 4;         // Content hash for change detection
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message SyncResourcePayload {
+  SyncResourceRef ref = 1;
+  // Serialized content — the shape depends on the type.
+  // For skills/actions: the markdown source.
+  // For experiences: the Experience message serialized.
+  // For profiles: the profile + active revision.
+  bytes content = 2;
+}

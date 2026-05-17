@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/feedback_types.proto";
+
+// ---------------------------------------------------------------------------
+// Runtime ledger model
+// ---------------------------------------------------------------------------
+
+enum IntegrationClass {
+  INTEGRATION_CLASS_UNSPECIFIED = 0;
+  INTEGRATION_CLASS_CLOUD = 1;
+  INTEGRATION_CLASS_EXECUTOR = 2;
+  INTEGRATION_CLASS_LOCAL_RUNTIME = 3;
+}
+
+enum IntegrationStatus {
+  INTEGRATION_STATUS_UNSPECIFIED = 0;
+  INTEGRATION_STATUS_INSTALLED = 1;
+  INTEGRATION_STATUS_MISSING = 2;
+  INTEGRATION_STATUS_NEEDS_KEY = 3;
+  INTEGRATION_STATUS_NEEDS_AUTH = 4;
+  INTEGRATION_STATUS_REACHABLE = 5;
+  INTEGRATION_STATUS_NO_MODELS_LOADED = 6;
+  INTEGRATION_STATUS_POLICY_BLOCKED = 7;
+  INTEGRATION_STATUS_UNSUPPORTED_ON_DEVICE = 8;
+  INTEGRATION_STATUS_ERROR = 9;
+}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_CREATED = 1;
+  RUN_STATUS_RUNNING = 2;
+  RUN_STATUS_WAITING_APPROVAL = 3;
+  RUN_STATUS_COMPLETED = 4;
+  RUN_STATUS_FAILED = 5;
+  RUN_STATUS_CANCELED = 6;
+}
+
+enum RunStepKind {
+  RUN_STEP_KIND_UNSPECIFIED = 0;
+  RUN_STEP_KIND_MODEL_INVOCATION = 1;
+  RUN_STEP_KIND_EXECUTOR_INVOCATION = 2;
+  RUN_STEP_KIND_LOCAL_RUNTIME_INVOCATION = 3;
+  RUN_STEP_KIND_TOOL_INVOCATION = 4;
+  RUN_STEP_KIND_APPROVAL_WAIT = 5;
+  RUN_STEP_KIND_ARTIFACT_WRITE = 6;
+  RUN_STEP_KIND_SUMMARY = 7;
+  RUN_STEP_KIND_OUTPUT_STREAM = 8;
+}
+
+enum RunStepStatus {
+  RUN_STEP_STATUS_UNSPECIFIED = 0;
+  RUN_STEP_STATUS_PENDING = 1;
+  RUN_STEP_STATUS_RUNNING = 2;
+  RUN_STEP_STATUS_WAITING_APPROVAL = 3;
+  RUN_STEP_STATUS_COMPLETED = 4;
+  RUN_STEP_STATUS_FAILED = 5;
+  RUN_STEP_STATUS_CANCELED = 6;
+}
+
+enum InvocationStatus {
+  INVOCATION_STATUS_UNSPECIFIED = 0;
+  INVOCATION_STATUS_PENDING = 1;
+  INVOCATION_STATUS_RUNNING = 2;
+  INVOCATION_STATUS_COMPLETED = 3;
+  INVOCATION_STATUS_FAILED = 4;
+  INVOCATION_STATUS_CANCELED = 5;
+}
+
+enum ApprovalRequestStatus {
+  APPROVAL_REQUEST_STATUS_UNSPECIFIED = 0;
+  APPROVAL_REQUEST_STATUS_PENDING = 1;
+  APPROVAL_REQUEST_STATUS_APPROVED = 2;
+  APPROVAL_REQUEST_STATUS_REJECTED = 3;
+  APPROVAL_REQUEST_STATUS_REVISED = 4;
+  APPROVAL_REQUEST_STATUS_DEFERRED = 5;
+  APPROVAL_REQUEST_STATUS_EXPIRED = 6;
+}
+
+message Run {
+  string run_id = 1;
+  string space_id = 2;
+  string space_uid = 3;
+  string turn_id = 4;
+  RunStatus status = 5;
+  string requested_by_principal_id = 6;
+  string requested_by_device_id = 7;
+  string target_agent_id = 8;
+  string trigger_source = 9;
+  string input_text = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp started_at = 12;
+  google.protobuf.Timestamp completed_at = 13;
+  string error_code = 14;
+  string error_message = 15;
+}
+
+message RunStep {
+  string step_id = 1;
+  string run_id = 2;
+  string space_id = 3;
+  string agent_id = 4;
+  int32 sequence = 5;
+  RunStepKind kind = 6;
+  RunStepStatus status = 7;
+  string title = 8;
+  string detail = 9;
+  string tool_name = 10;
+  string provider_id = 11;
+  string model_id = 12;
+  google.protobuf.Struct payload = 13;
+  google.protobuf.Struct output = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp started_at = 16;
+  google.protobuf.Timestamp completed_at = 17;
+  string error_message = 18;
+}
+
+message InvocationRecord {
+  string invocation_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string integration_id = 5;
+  IntegrationClass integration_class = 6;
+  InvocationStatus status = 7;
+  string provider_id = 8;
+  string model_id = 9;
+  google.protobuf.Struct request = 10;
+  google.protobuf.Struct response = 11;
+  google.protobuf.Struct usage = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp started_at = 14;
+  google.protobuf.Timestamp completed_at = 15;
+  string error_message = 16;
+}
+
+message ApprovalRequestRecord {
+  string approval_request_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string space_id = 4;
+  string turn_id = 5;
+  string agent_id = 6;
+  FeedbackCategory category = 7;
+  ApprovalRequestStatus status = 8;
+  string description = 9;
+  google.protobuf.Struct context = 10;
+  repeated string options = 11;
+  string resolution = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp resolved_at = 14;
+}
+
+message UsageRecord {
+  string usage_record_id = 1;
+  string run_id = 2;
+  string step_id = 3;
+  string invocation_id = 4;
+  string space_id = 5;
+  string provider_id = 6;
+  string model_id = 7;
+  int32 prompt_tokens = 8;
+  int32 completion_tokens = 9;
+  int32 total_tokens = 10;
+  double estimated_cost_usd = 11;
+  google.protobuf.Struct metadata = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message IntegrationCatalogEntry {
+  string integration_id = 1;
+  string display_name = 2;
+  IntegrationClass integration_class = 3;
+  IntegrationStatus status = 4;
+  bool recommended = 5;
+  bool configured = 6;
+  bool reachable = 7;
+  bool install_detected = 8;
+  bool supports_hosted_billing = 9;
+  string auth_kind = 10;
+  string install_hint = 11;
+  string base_url = 12;
+  repeated string models = 13;
+  google.protobuf.Timestamp last_checked_at = 14;
+  string error_message = 15;
+}

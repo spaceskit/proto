@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package spaceskit.v2;
 
-import "spaceskit/v2/common.proto";
 import "google/protobuf/timestamp.proto";
+import "spaceskit/v2/sync_types.proto";
 
 // SyncService enables gateway-to-gateway resource exchange.
 //

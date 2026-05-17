@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Feedback enums — the human-in-the-loop protocol
+// ---------------------------------------------------------------------------
+
+enum FeedbackCategory {
+  FEEDBACK_CATEGORY_UNSPECIFIED = 0;
+  FEEDBACK_CATEGORY_PERMISSION = 1;       // Agent needs elevated permission
+  FEEDBACK_CATEGORY_BUDGET = 2;           // Budget threshold reached
+  FEEDBACK_CATEGORY_HIGH_IMPACT = 3;      // Destructive or irreversible action
+  FEEDBACK_CATEGORY_AMBIGUITY = 4;        // Agent unsure how to proceed
+  FEEDBACK_CATEGORY_CONFLICT = 5;         // Agents disagree
+  FEEDBACK_CATEGORY_SECURITY = 6;         // Security policy triggered
+}
+
+enum FeedbackStatus {
+  FEEDBACK_STATUS_UNSPECIFIED = 0;
+  FEEDBACK_STATUS_PENDING = 1;
+  FEEDBACK_STATUS_RESOLVED = 2;
+  FEEDBACK_STATUS_EXPIRED = 3;
+}
+
+enum FeedbackResponseType {
+  FEEDBACK_RESPONSE_TYPE_UNSPECIFIED = 0;
+  FEEDBACK_RESPONSE_TYPE_APPROVE = 1;
+  FEEDBACK_RESPONSE_TYPE_REJECT = 2;
+  FEEDBACK_RESPONSE_TYPE_REVISE = 3;   // Approve with modifications
+  FEEDBACK_RESPONSE_TYPE_DEFER = 4;    // Postpone decision
+}
+
+// ---------------------------------------------------------------------------
+// Feedback model — the human-in-the-loop protocol
+//
+// When an agent needs human input (permission, budget approval, conflict
+// resolution, security escalation), it creates a FeedbackRequest. The
+// native app presents this to the user. The user's response is a
+// FeedbackResponse that the gateway routes back to the agent.
+// ---------------------------------------------------------------------------
+
+message FeedbackRequest {
+  string feedback_id = 1;
+  string space_id = 2;
+  string agent_id = 3;
+  // The turn that triggered this feedback request.
+  string turn_id = 4;
+
+  FeedbackCategory category = 5;
+  FeedbackStatus status = 6;
+
+  // Human-readable description of what the agent needs.
+  string prompt = 7;
+  // Structured context (e.g. the capability invocation that was blocked).
+  google.protobuf.Struct context = 8;
+
+  // Options the human can choose from (if applicable).
+  repeated string options = 9;
+  // Whether the agent can continue with a default action if no response.
+  bool has_default_action = 10;
+  // Timeout: how long to wait before falling back to default (0 = forever).
+  int32 timeout_seconds = 11;
+
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp expires_at = 13;
+}
+
+message FeedbackResponse {
+  string feedback_id = 1;
+  FeedbackResponseType response_type = 2;
+  // The selected option index, or -1 for free-form.
+  int32 selected_option = 3;
+  // Free-form human input (for REVISE or custom responses).
+  string message = 4;
+  // Structured modifications (for REVISE).
+  google.protobuf.Struct modifications = 5;
+  google.protobuf.Timestamp responded_at = 6;
+}

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Experience enums
+// ---------------------------------------------------------------------------
+
+enum ExperienceStatus {
+  EXPERIENCE_STATUS_UNSPECIFIED = 0;
+  EXPERIENCE_STATUS_DRAFT = 1;       // Auto-generated, not yet reviewed
+  EXPERIENCE_STATUS_ACCEPTED = 2;    // Human-reviewed and kept
+  EXPERIENCE_STATUS_REJECTED = 3;    // Human-reviewed and discarded
+  EXPERIENCE_STATUS_ARCHIVED = 4;    // Kept but no longer surfaced
+}
+
+// ---------------------------------------------------------------------------
+// Experience model — structured reflections produced by spaces
+// ---------------------------------------------------------------------------
+
+message Experience {
+  string experience_id = 1;
+  string space_id = 2;
+  string resource_id = 3;
+  ExperienceStatus status = 4;
+
+  // What the space was trying to do.
+  string goal = 5;
+  // Compressed narrative of what happened.
+  string summary = 6;
+  // What worked well.
+  repeated string strengths = 7;
+  // What didn't work or could improve.
+  repeated string weaknesses = 8;
+  // Specific observations about agent performance.
+  repeated AgentObservation agent_observations = 9;
+  // Free-form tags for retrieval.
+  repeated string tags = 10;
+
+  // Path to the .md file on disk (human-readable, editable).
+  string source_path = 11;
+
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message AgentObservation {
+  string agent_id = 1;
+  string profile_id = 2;
+  // What this agent did well or poorly.
+  string observation = 3;
+  // Optional suggestion for profile adjustment.
+  string profile_delta_suggestion = 4;
+  // Relevance score: how much this observation should influence
+  // future context assembly. 0.0 = ignore, 1.0 = always include.
+  double relevance = 5;
+}

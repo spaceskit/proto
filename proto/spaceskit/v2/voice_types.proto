@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+message VoiceIntentDecision {
+  VoiceIntentType intent_type = 1;
+  double confidence = 2;
+  string rationale = 3;
+  string clarification_prompt = 4;
+  string capability_id = 5;
+}

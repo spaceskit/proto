@@ -2,8 +2,9 @@ syntax = "proto3";
 
 package spaceskit.v2;
 
-import "spaceskit/v2/common.proto";
 import "google/protobuf/field_mask.proto";
+import "spaceskit/v2/profile_types.proto";
+import "spaceskit/v2/security_types.proto";
 
 // ---------------------------------------------------------------------------
 // ProfileService — agent identity management
@@ -100,14 +101,14 @@ message UpdateAgentProfileRequest {
   repeated string default_skill_ids = 6;
   repeated string default_action_ids = 7;
   optional string provider_hint = 8;
-  optional string model_hint = 9;
+  reserved 9;
   optional bool can_moderate = 10;
   optional bool is_default = 11;
   AgentSecurityScope default_security_scope = 12;
   // Reason for the update (becomes change_reason on the new revision).
   optional string change_reason = 13;
   string idempotency_key = 14;
-  // Additive multi-model config; legacy model_hint remains supported.
+  // Multi-model config. preferred_models[0] is the single-model source.
   ModelConfig model_config = 15;
   // Optional explicit patch paths (for example default_skill_ids, is_default).
   google.protobuf.FieldMask update_mask = 16;
