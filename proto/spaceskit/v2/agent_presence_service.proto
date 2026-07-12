@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package spaceskit.v2;
+
+import "spaceskit/v2/common.proto";
+
+service AgentPresenceService {
+  // --- Read: snapshot + live subscription ---
+  rpc ListActiveAgents(ListActiveAgentsRequest) returns (ListActiveAgentsResponse);
+  rpc SubscribeAgentPresence(SubscribeAgentPresenceRequest) returns (stream AgentPresenceSnapshot);
+
+  // --- Mutation: answer a waiting agent ---
+  rpc AnswerAgent(AnswerAgentRequest) returns (AnswerAgentResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// Which local AI coding CLI produced this presence row.
+enum AgentProvider {
+  AGENT_PROVIDER_UNSPECIFIED = 0;
+  AGENT_PROVIDER_CLAUDE = 1;
+  AGENT_PROVIDER_CODEX = 2;
+  AGENT_PROVIDER_OPENCODE = 3;
+}
+
+// Why a session is waiting on the user. Mirrors the detector's WaitStatus.
+// `question`/`plan`/`permission` are structured asks; `turn_end` is the
+// dominant "the turn finished, your move" case. `working`/`idle_dead` are
+// non-waiting states the detector emits so a prior ping can be cleared.
+enum AgentWaitStatus {
+  AGENT_WAIT_STATUS_UNSPECIFIED = 0;
+  AGENT_WAIT_STATUS_QUESTION = 1;
+  AGENT_WAIT_STATUS_PLAN = 2;
+  AGENT_WAIT_STATUS_PERMISSION = 3;
+  AGENT_WAIT_STATUS_TURN_END = 4;
+  AGENT_WAIT_STATUS_WORKING = 5;
+  AGENT_WAIT_STATUS_IDLE_DEAD = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+// A single multiple-choice option lifted from a structured ask.
+message AgentWaitOption {
+  string label = 1;
+  string description = 2;
+}
+
+// The detector's view of one session (mirrors AgentRow / SessionWaitState).
+message AgentPresenceRow {
+  // Stable identity used to route an answer back (`<provider>:<session_id>`).
+  string key = 1;
+  AgentProvider provider = 2;
+  string session_id = 3;
+  string cwd = 4;
+  AgentWaitStatus status = 5;
+  // Short human summary for the push (the question text or last message).
+  string summary = 6;
+  // Structured options when status is QUESTION / PLAN / PERMISSION.
+  repeated AgentWaitOption options = 7;
+  // Content hash of the waiting state — stable across re-reads, changes on a
+  // new ask. Used by clients to dedupe.
+  string hash = 8;
+  // Fractional epoch milliseconds of the underlying event/file. Typed as
+  // `double` because the detector emits sub-millisecond fractional values
+  // (Date.now()-derived but carrying file mtime fractions); int64 would
+  // truncate the fraction.
+  double at = 9;
+  // Whether a live CLI process is attached (liveness gate).
+  bool live = 10;
+}
+
+message ListActiveAgentsRequest {
+  string api_version = 1;
+  // Optional filter: only return rows for these providers (empty = all).
+  repeated AgentProvider providers = 2;
+  // Optional: include non-waiting rows (WORKING / IDLE_DEAD). Default false
+  // returns only rows awaiting the user.
+  bool include_inactive = 3;
+  int32 limit = 4;
+}
+
+message ListActiveAgentsResponse {
+  string api_version = 1;
+  repeated AgentPresenceRow agents = 2;
+  // Fractional epoch milliseconds the snapshot was generated.
+  double generated_at = 3;
+}
+
+message SubscribeAgentPresenceRequest {
+  string api_version = 1;
+  repeated AgentProvider providers = 2;
+  bool include_inactive = 3;
+  // Emit the current snapshot immediately on subscribe before live updates.
+  bool include_initial_snapshot = 4;
+}
+
+// Pushed whenever the active agent set changes. Carries the full current set
+// (not a delta) so a late subscriber is always consistent.
+message AgentPresenceSnapshot {
+  string api_version = 1;
+  repeated AgentPresenceRow agents = 2;
+  double generated_at = 3;
+}
+
+message AnswerAgentRequest {
+  string api_version = 1;
+  // Target agent key (`<provider>:<session_id>`).
+  string key = 2;
+  // Choose an option by index into AgentPresenceRow.options. -1 = none chosen
+  // (free-text only). Mutually informative with option_label.
+  int32 option_index = 3;
+  // Choose an option by its label (alternative to option_index). Empty = none.
+  string option_label = 4;
+  // Optional free-text answer appended to (or used in place of) the option.
+  string text = 5;
+  // Content hash the client last saw, so a stale answer to a superseded ask
+  // can be rejected.
+  string expected_hash = 6;
+  string idempotency_key = 7;
+}
+
+// How an answer was delivered to the target session. Honest per-provider
+// truth: opencode and gateway-owned Codex threads receive the answer IN PLACE
+// (the live session continues); Claude (and unreachable foreign Codex threads)
+// fall back to FORK_RESUME, which spawns a NEW run and leaves the original TUI
+// untouched. READ_ONLY means delivery is disabled/unsupported for this row.
+enum AnswerDeliveryMode {
+  ANSWER_DELIVERY_MODE_UNSPECIFIED = 0;
+  ANSWER_DELIVERY_MODE_IN_PLACE = 1;
+  ANSWER_DELIVERY_MODE_FORK_RESUME = 2;
+  ANSWER_DELIVERY_MODE_READ_ONLY = 3;
+}
+
+message AnswerAgentResponse {
+  string api_version = 1;
+  bool ok = 2;
+  // The resolved answer string that was delivered to the agent (option label
+  // and/or free text), for confirmation/echo.
+  string delivered_answer = 3;
+  // Set when ok = false (e.g. agent not found, stale hash, answer-back
+  // disabled by policy).
+  ErrorInfo error = 4;
+  // The updated row for this key after the answer (may be absent if the
+  // session is no longer waiting).
+  AgentPresenceRow agent = 5;
+  // How the answer was actually delivered. The app surfaces FORK_RESUME
+  // honestly ("continued in a new run") rather than implying the live session
+  // resumed.
+  AnswerDeliveryMode delivery_mode = 6;
+}
